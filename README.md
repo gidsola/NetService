@@ -21,12 +21,12 @@ NetService simplifies HTTPS deployment for Next.js apps while enforcing modern s
 
 ### Install
 ```bash
-npm install @yourscope/NetService
+npm install netService
 ```
 
 ### Basic Usage
 ```javascript
-import NetService from 'NetService';
+import NetService from 'netservice';
 
 const service = new NetService('yourdomain.com'); // Auto-detects dev/prod
 
