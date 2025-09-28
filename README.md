@@ -3,7 +3,7 @@
 
 **A secure, production-ready custom server for Next.js with built-in TLS and security headers.**
 
-MicroService simplifies HTTPS deployment for Next.js apps while enforcing modern security best practices. It automatically handles TLS configuration, security headers, and environment detection—so you don’t have to.
+NetService simplifies HTTPS deployment for Next.js apps while enforcing modern security best practices. It automatically handles TLS configuration, security headers, and environment detection—so you don’t have to.
 
 ---
 
@@ -21,14 +21,14 @@ MicroService simplifies HTTPS deployment for Next.js apps while enforcing modern
 
 ### Install
 ```bash
-npm install @yourscope/microservice
+npm install @yourscope/NetService
 ```
 
 ### Basic Usage
 ```javascript
-import MicroService from 'microservice';
+import NetService from 'NetService';
 
-const service = new MicroService('yourdomain.com'); // Auto-detects dev/prod
+const service = new NetService('yourdomain.com'); // Auto-detects dev/prod
 
 service.on('ready', () => {
   console.log(`Server running on ${service.development ? 'http://localhost' : 'https://yourdomain.com'}`);
