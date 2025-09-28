@@ -81,7 +81,7 @@ Example:
 class MySafety extends Safety {
   async isAllowed(req, res) {
     if (req.ip === '127.0.0.1') return true; // Allow localhost
-    return super.isAllowed(req, res); // Default checks
+    return service.Safety.isAllowed(req, res); // Default checks
   }
 }
 ```
