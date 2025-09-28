@@ -10,26 +10,26 @@ import { readFileSync } from 'fs';
 
 import Next from 'next';
 
-import Safety from './safety.js';
+import Safety, { WriteAndEnd } from './safety.js';
 import logger from './logger.js';
 
 class MicroService extends EventEmitter {
-  NetService;
+
   private NextServer;
-  Safety;
-  private ServiceHandler;
-  development;
   private _nextServerOptions;
   private _httpsServerOptions;
-  /**
-   * @private
-   */
-  NextRequestHandler;
+
+  NetService;
+  Safety;
+  development;
+
+  private ServiceHandler;
+  private NextRequestHandler;
 
   /**
    * Creates a MicroService Server for the specified domain.
    * 
-   * @param {string} DOMAIN - The domain name for the service. If 'localhost', the service will run in development mode.
+   * @param DOMAIN - The domain name for the service. If 'localhost', the service will run in development mode.
    * 
    * @note If you have listening access error use the following:
    * 
@@ -40,9 +40,7 @@ class MicroService extends EventEmitter {
     super();
 
     this.Safety = new Safety();
-
-    /**@type {boolean} */
-    this.development = process.env.DEV === DOMAIN;
+    this.development = DOMAIN === 'localhost';
 
     this._nextServerOptions = {
       rejectUnauthorized: false,
@@ -71,8 +69,8 @@ class MicroService extends EventEmitter {
       rejectUnauthorized: false,
       insecureHTTPParser: false,
       ciphers: process.env.TLS_CIPHERS,
-      maxVersion: process.env.TLS_MAXVERSION as SecureVersion,
-      minVersion: process.env.TLS_MINVERSION as SecureVersion,
+      maxVersion: process.env.TLS_MAXVERSION as SecureVersion ?? "TLSv1.3",
+      minVersion: process.env.TLS_MINVERSION as SecureVersion ?? "TLSv1.2",
       enableTrace: false,
       requestTimeout: 30000,
       sessionTimeout: 120000,
@@ -95,66 +93,56 @@ class MicroService extends EventEmitter {
   };
 
 
-  /**
-   * @private
-   */
-  async init() {
+  private async init() {
 
-    this.Safety.maintenance();
     await this.NextServer.prepare();
-    await new Promise((resolve) => {
 
-      // re-visit the listeners
-      this.NetService
-        .on('error', async function serviceError(err) {
+    await new Promise((resolve, reject) => {
+      try {
+        // re-visit the listeners
+        this.NetService
+          .on('error', async function serviceError(e) {
+            // todo
+            logger('@NetService').error(e instanceof Error ? e.message : e);
+          })
+          .on('clientError', async function clientError(e, socket) {
+            socket.destroy(e);
+          })
+          .on('tlsClientError', async function tlsClientError(e, socket) {
+            socket.destroy(e);
+          })
           // todo
-          logger().error('NetService Error:', err);
-        })
-        .on('clientError', async function clientError(err, socket) {
-          socket.destroy(err);
-        })
-        .on('tlsClientError', async function tlsClientError(err, socket) {
-          socket.destroy(err);
-        })
-        // todo
-        .on('stream', async function rcvdStream(stream, headers) {
-          logger().info('stream');
-        })
-        .listen(this._nextServerOptions.port, () => {
-          this.emit('ready');
-          resolve;
-        });
-
+          .on('stream', async function rcvdStream(stream, headers) {
+            logger().info('stream');
+          })
+          .listen(this._nextServerOptions.port, () => {
+            this.emit('ready');
+            resolve;
+          });
+      }
+      catch (e) {
+        logger('@NetService').error(e instanceof Error ? e.message : e);
+        this.emit('error', e instanceof Error ? e.message : e);
+        reject;
+      }
     });
-    ;
   };
 
 
-  /**
-   * @param {IncomingMessage} req
-   * @param {ServerResponse<IncomingMessage>} res
-   *
-   * @private
-   */
-  async NextRequest(req: IncomingMessage, res: ServerResponse<IncomingMessage>) {
+  private async NextRequest(req: IncomingMessage, res: ServerResponse<IncomingMessage>) {
     try {
       setHeaders(res);
       return await this.NextRequestHandler(req, res);
-    } catch (e) {
-      console.error(e);
-      logger().error('Error handling web request:', e);
-      return this.Safety.WriteAndEnd(res, 500, 'Internal Server Error');
+    }
+    catch (e) {
+      logger('@NetService').error(e instanceof Error ? e.message : e);
+      this.emit('error', e instanceof Error ? e.message : e);
+      return WriteAndEnd(res, 500, 'Internal Server Error');
     };
   };
 
 
-  /**
-   * @param {IncomingMessage} req
-   * @param {ServerResponse<IncomingMessage>} res
-   *
-   * @private
-   */
-  async processRequest(req: IncomingMessage, res: ServerResponse<IncomingMessage>) {
+  private async processRequest(req: IncomingMessage, res: ServerResponse<IncomingMessage>) {
     try {
       // const url = new URL(req.url || '', `https://${req.headers.host}`);
 
@@ -173,23 +161,14 @@ class MicroService extends EventEmitter {
 
     }
     catch (e) {
-      logger().error(e);
-      return this.Safety.WriteAndEnd(res, 500, 'Internal Server Error');
+      logger('@NetService').error(e instanceof Error ? e.message : e);
+      this.emit('error', e instanceof Error ? e.message : e);
+      return WriteAndEnd(res, 500, 'Internal Server Error');
     };
   };
 
 
-
-
-
-  /**
-   * @param {IncomingMessage} req
-   * @param {ServerResponse<IncomingMessage>} res
-   *
-   * @private
-   * @returns {Promise<void | ServerResponse<IncomingMessage>>}
-   */
-  async ServiceResponseHandler(req: IncomingMessage, res: ServerResponse<IncomingMessage>): Promise<void | ServerResponse<IncomingMessage>> {
+  private async ServiceResponseHandler(req: IncomingMessage, res: ServerResponse<IncomingMessage>): Promise<void | ServerResponse<IncomingMessage>> {
     try {
       const allowedResponse = await this.Safety.isAllowed(req, res);
       return typeof allowedResponse === 'boolean'
@@ -197,9 +176,9 @@ class MicroService extends EventEmitter {
         : allowedResponse;
 
     } catch (e) {
-      logger().error('Error:', e);
-      console.log(e);
-      return this.Safety.WriteAndEnd(res, 500, 'Internal Server Error');
+      logger('@NetService').error(e instanceof Error ? e.message : e);
+      this.emit('error', e instanceof Error ? e.message : e);
+      return WriteAndEnd(res, 500, 'Internal Server Error');
     };
   };
 
@@ -207,13 +186,10 @@ class MicroService extends EventEmitter {
 export default MicroService;
 
 
-/**
- * @param {ServerResponse<IncomingMessage>} res
- * 
- * @private
- */
+
 function setHeaders(res: ServerResponse<IncomingMessage>) {
   // gotta be a better way..
+  // def need to re-visit these, locale to start.
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -228,5 +204,3 @@ function setHeaders(res: ServerResponse<IncomingMessage>) {
   res.setHeader('Content-Language', 'en-US');
   res.setHeader('Connection', 'close');
 };
-
-
