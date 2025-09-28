@@ -10,7 +10,7 @@ import { readFileSync } from 'fs';
 
 import Next from 'next';
 
-import Safety from './safety';
+import Safety from './safety.js';
 import logger from './logger.js';
 
 class MicroService extends EventEmitter {

@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { EventEmitter } from 'node:events';
-import Safety from './safety';
+import Safety from './safety.js';
 declare class MicroService extends EventEmitter {
     NetService: import("http").Server<typeof IncomingMessage, typeof ServerResponse> | import("https").Server<typeof IncomingMessage, typeof ServerResponse>;
     private NextServer;
@@ -12,7 +12,7 @@ declare class MicroService extends EventEmitter {
     /**
      * @private
      */
-    NextRequestHandler: import("next/dist/server/next").RequestHandler;
+    NextRequestHandler: import("next/dist/server/next.js").RequestHandler;
     /**
      * Creates a MicroService Server for the specified domain.
      *
