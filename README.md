@@ -1,78 +1,129 @@
+
 # MicroService
 
-A custom HTTP/HTTPS server for Next.js applications with enhanced security and flexibility.
+**A secure, production-ready custom server for Next.js with built-in TLS and security headers.**
 
-## Features
-- Automatic TLS 1.2/1.3 configuration
-- Security headers (CSP, HSTS, XSS protection)
-- Event-driven architecture
-- Development/production environment detection
-- Next.js integration
+MicroService simplifies HTTPS deployment for Next.js apps while enforcing modern security best practices. It automatically handles TLS configuration, security headers, and environment detection—so you don’t have to.
 
-## Basic Usage
+---
 
+## ✨ Features
+
+- **Automatic TLS 1.2/1.3** – HTTPS in production, HTTP for localhost
+- **Security Headers** – Preconfigured CSP, HSTS, XSS protection, and more
+- **Event-Driven** – Extend with custom logic via `on('ready')`, error handlers, etc.
+- **Next.js Integration** – Works seamlessly with Next.js’s `customServer` API
+- **Dev/Prod Parity** – Consistent behavior across environments
+
+---
+
+## 🚀 Quick Start
+
+### Install
+```bash
+npm install @yourscope/microservice
+```
+
+### Basic Usage
 ```javascript
-import MicroService from './MicroService.mjs';
+import MicroService from 'microservice';
 
-// Create server (automatically uses HTTPS in production)
-const Service = new MicroService('yourdomain.com');
+const service = new MicroService('yourdomain.com'); // Auto-detects dev/prod
 
-// Server is ready when 'ready' event fires
-Service.on('ready', () => {
-  console.log('Server is running');
+service.on('ready', () => {
+  console.log(`Server running on ${service.development ? 'http://localhost' : 'https://yourdomain.com'}`);
 });
 ```
-### Cleanup
-There is also a cleanup function you can pass to your maintenance scripts.
-```JavaScript
-await Service.Safety.cleanup();
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables (`.env`)
+```env
+DEV="localhost"          # Dev mode if DEV === DOMAIN
+DOMAIN="yourdomain.com"  # Production domain
+DIR_SSL="/path/to/certs/" # Full path to SSL certificates
+TLS_CIPHERS="..."        # OpenSSL cipher string (optional)
+TLS_MINVERSION="TLSv1.2" # Minimum TLS version (optional)
+TLS_MAXVERSION="TLSv1.3" # Maximum TLS version (optional)
 ```
 
-## Configuration  
-The server automatically:  
+### SSL Certificates
+Place these files in `DIR_SSL`:
+- **Production**: `private.key`, `certificate.crt`, `ca_bundle.crt` (optional)
+- **Development**: Generate self-signed certs (see below)
 
-Uses HTTP on localhost (port 80)
-Uses HTTPS in production (port 443)  
-
-Requires SSL certificates in production:
-```
-private.key
-certificate.crt
-ca_bundle.crt (optional)
-```
-Make sure paths to certificates are correctly identified in your .env (full path).  
-
-### Environment
-```bash
-# .env
-DEV="localhost" # When DEV and DOMAIN are the same it runs in development mode.
-DOMAIN="localhost" # Change to your domain name to run in production.
-DIR_SSL="/path/to/your/ssl/" # This must be the full path to your certs.
-TLS_CIPHERS="TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA"
-TLS_MINVERSION="TLSv1.2"
-TLS_MAXVERSION="TLSv1.3"
-```
-
-## Security Headers  
-Automatically sets secure headers including:  
-
-Content-Security-Policy  
-Strict-Transport-Security  
-X-Frame-Options  
-X-Content-Type-Options  
-X-XSS-Protection  
-
-## Environment Setup  
-For local development:  
-### Generate self-signed certificates  
+#### Generate Self-Signed Certs (Dev)
 ```bash
 openssl req -x509 -out localhost.crt -keyout localhost.key \
   -newkey rsa:2048 -nodes -sha256 \
   -subj '/CN=localhost' -extensions EXT -config <( \
-   printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS\:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
+   printf "[dn]\nCN=localhost\n[req]\ndistinguished_name=dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
 ```
 
-## Notes
+---
 
-Handles both HTTP and HTTPS automatically  
-Designed for Next.js custom server implementations  
+## 🛡 Security
+
+### Headers (Auto-Applied)
+- `Strict-Transport-Security`
+- `Content-Security-Policy`
+- `X-Frame-Options`, `X-XSS-Protection`, and more
+
+### Custom Safety Rules
+Extend the `Safety` class to add:
+- IP whitelisting/blacklisting
+- Rate limiting
+- Maintenance mode
+
+Example:
+```javascript
+class MySafety extends Safety {
+  async isAllowed(req, res) {
+    if (req.ip === '127.0.0.1') return true; // Allow localhost
+    return super.isAllowed(req, res); // Default checks
+  }
+}
+```
+
+---
+
+## 🔌 Events
+
+| Event      | Description                     |
+|------------|---------------------------------|
+| `ready`    | Server started                  |
+| `error`    | Server error occurred           |
+| `stream`   | HTTP/2 stream received          |
+
+```javascript
+service.on('error', (err) => {
+  console.error('Server error:', err);
+});
+```
+
+---
+
+## 📦 Cleanup
+
+Gracefully shut down resources:
+```javascript
+process.on('SIGTERM', async () => {
+  await service.Safety.cleanup();
+  process.exit(0);
+});
+```
+
+---
+
+## 🤝 Contributing
+Issues and PRs welcome! Focus areas:
+- TLS hardening (e.g., OCSP stapling)
+- Header presets (e.g., for APIs vs. SPAs)
+- Middleware support
+
+---
+
+## 📄 License
+MIT © [gidsola](https://goodsie.ca)
