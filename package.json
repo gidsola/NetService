@@ -1,6 +1,6 @@
 {
   "name": "netservice",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "NetService - A secure, drop-in custom server for Next.js with auto-TLS (1.2/1.3), strict security headers (CSP/HSTS), and dev/prod parity. HTTPS in production, HTTP locally—no config hassle. Built for developers needing control without sacrificing security. ",
   "main": "MicroService.ts",
   "type":"module",

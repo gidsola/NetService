@@ -41,7 +41,7 @@
     "allowJs": true,
     "checkJs": true,
     "emitDeclarationOnly": false,
-    "outDir": ".types",
+    "outDir": "@types",
     "strict": true,
     "verbatimModuleSyntax": true,
     "noUncheckedSideEffectImports": true,
