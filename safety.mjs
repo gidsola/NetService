@@ -15,27 +15,22 @@ class Safety {
 
   constructor() {
 
+    this.urlBlockList = [{ url: "/admin" }];
+    this.ipBlockList = new Map();
+    this.RateLimitBucket = {};
 
-    this.urlBlockList = [{ url: "/admin" }],
-      this.ipBlockList = new Map(),
-      this.RateLimitBucket = {},
+    this.RATE_LIMIT = 10;
+    this.INACTIVITY_LENGTH = 10000;
+    this.BAN_LENGTH = 300000;
+    this.SWEEP_INTERVAL = 60000;
 
-      this.RATE_LIMIT = 10,
-      this.INACTIVITY_LENGTH = 10000,
-      this.BAN_LENGTH = 300000,
-      this.SWEEP_INTERVAL = 60000;
     /**
      * @type {NodeJS.Timeout | undefined}
      */
     this.sweeper;
-
-    // maintenance();
-    // const now = Date.now();
-
   }
 
   logAccess(type, method, address, url, a = null) {
-
     const
       owner = "@SAFETY",
       msgString = () => `${chalk.bgBlueBright(address)}: (Method: ${method}, URL: ${chalk.bgBlue(url)}`,
@@ -46,11 +41,7 @@ class Safety {
 
         "ban": (a) => logger(owner).warn(`[${chalk.bgRedBright("BANNED")}] => ${chalk.bgBlueBright(address)} until ${a}\n`)
       };
-
-    blockType[type] ? blockType[type](a) : logger("SYSTEM").warn("Unknown Access Log Type..")
-
-
-    // logger('SAFETY').info(`[BLOCKED] IP ${address} banned until ${new Date(ipBanData.banExpiry)}`);
+    blockType[type] ? blockType[type](a) : logger("SYSTEM").warn("Unknown Access Log Type..");
   };
 
   /**
@@ -230,7 +221,6 @@ class Safety {
       };
     });
   };
-
 
 };
 export default Safety;
