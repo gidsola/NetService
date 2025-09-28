@@ -1,22 +1,39 @@
 import { IncomingMessage, ServerResponse } from 'http';
-import logger from './logger.mjs';
+import logger from './logger.js';
 import chalk from 'chalk';
 
-/**
- * @typedef {{banExpiry: number, reason: string}} BanData
- * 
- * @typedef {{count: number, lastSeen: number}} LimitData
- * 
- * @typedef {ServerResponse<IncomingMessage>} Response
- * 
- */
+type BanData = { banExpiry: number; reason: string; };
+
+type LimitData = { count: number; lastSeen: number; };
+
+type Response = ServerResponse<IncomingMessage>;
 
 class Safety {
+  urlBlockList: {
+    url: string;
+  }[];
+  ipBlockList: Map<any, any>;
+  RateLimitBucket: {
+    [x: string]: {
+      count: number,
+      lastSeen: number
+    }
+  };
+
+  RATE_LIMIT: number;
+  INACTIVITY_LENGTH: number;
+  BAN_LENGTH: number;
+  SWEEP_INTERVAL: number;
+  /**
+   * @type {NodeJS.Timeout | undefined}
+   */
+  sweeper: NodeJS.Timeout | undefined;
 
   constructor() {
 
     this.urlBlockList = [{ url: "/admin" }];
     this.ipBlockList = new Map();
+    /**@type {{[x: string]: {count: number, lastSeen: number}}} */
     this.RateLimitBucket = {};
 
     this.RATE_LIMIT = 10;
@@ -27,14 +44,17 @@ class Safety {
     /**
      * @type {NodeJS.Timeout | undefined}
      */
-    this.sweeper;
+    // this.sweeper;
   }
 
-  logAccess(type, method, address, url, a = null) {
+
+  logAccess(type: string, method: string, address: string, url: string, a: any | null = null) {
     const
-      owner = "@SAFETY",
+
+      owner: null | string = "@SAFETY",
       msgString = () => `${chalk.bgBlueBright(address)}: (Method: ${method}, URL: ${chalk.bgBlue(url)}`,
-      blockType = {
+
+      blockType: { [x: string]: (a: any | null) => {}; } = {
         "url": () => logger(owner).warn(`[${chalk.bgRedBright("[BLOCKED URL]")}] => ${msgString()}\n`),
 
         "ip": () => logger(owner).warn(`[${chalk.bgRedBright("[BLOCKED IP]")}] => ${msgString()}\n`),
@@ -44,14 +64,8 @@ class Safety {
     blockType[type] ? blockType[type](a) : logger("SYSTEM").warn("Unknown Access Log Type..");
   };
 
-  /**
-   * 
-   * @param {string} method 
-   * @param {string} address 
-   * @param {string} url 
-   * @returns 
-   */
-  async isBlocked(method, address, url) {
+
+  async isBlocked(method: string, address: string, url: string) {
     try {
       if (address.includes("::1")) return false;
       const now = Date.now();
@@ -64,7 +78,7 @@ class Safety {
       /**
        * @type {BanData}
        */
-      const ipBanData = this.ipBlockList.get(address);
+      const ipBanData: BanData = this.ipBlockList.get(address);
       if (ipBanData?.banExpiry > now) {
         this.logAccess("ip", method, address, url);
         return true;
@@ -78,19 +92,14 @@ class Safety {
   };
 
 
-  /**
-   * @param {string} method
-   * @param {string} address
-   * @param {string} url
-   * @param {BanData} banData
-   */
-  async setIPBlock(method, address, url, banData) {
+
+  async setIPBlock(method: string, address: string, url: string, banData: BanData) {
     try {
       this.ipBlockList.set(address, { ...banData });
       this.logAccess("ip", method, address, url);
       return true;
     }
-    catch (/**@type {any}*/e) {
+    catch (/**@type {any}*/e: any) {
       e instanceof Error
         ? logger().error("Error setting IP block" + e.message)
         : logger().error("Error setting IP block" + e)
@@ -99,29 +108,21 @@ class Safety {
   };
 
 
-  /**
-   * 
-   * @param {string} method 
-   * @param {string} address 
-   * @param {string} url 
-   * @returns 
-   */
-  async isRateLimited(method, address, url) {
+
+  async isRateLimited(method: string, address: string, url: string) {
     if (address.includes("::1")) return false;
     const
       now = Date.now(),
       key = address + ":" + url,
-    /**@type {BanData}*/ipBanData = this.ipBlockList.get(address);
+    /**@type {BanData}*/ipBanData: BanData = this.ipBlockList.get(address);
 
     if (ipBanData?.banExpiry > now) {
       this.logAccess("ban", method, address, url, new Date(ipBanData.banExpiry));
       return true;
     };
 
-    /**
-     * @type {LimitData}
-     */
-    const rateLimitData = this.RateLimitBucket[key] || { count: 0, lastSeen: now };
+
+    const rateLimitData: LimitData = this.RateLimitBucket[key] || { count: 0, lastSeen: now };
 
     rateLimitData.count++;
     rateLimitData.lastSeen = now;
@@ -144,7 +145,7 @@ class Safety {
    * @param {string} message
    *
    */
-  async WriteAndEnd(res, statusCode, message) {
+  async WriteAndEnd(res: Response, statusCode: number, message: string) {
     return res
       .writeHead(statusCode, {
         'Content-Length': Buffer.byteLength(message),
@@ -159,15 +160,15 @@ class Safety {
    * @param {Response} res
    *
    */
-  async isAllowed(req, res) {
+  async isAllowed(req: IncomingMessage, res: Response) {
     try {
       if (!req.method || !req.url || req.method === "POST") return res.end(); // dont forget posts are blocked..
 
-      if ((await this.isRateLimited(req.method, req.headers['x-forwarded-for'] /*as string*/ || req.socket.remoteAddress, req.url))) {
+      if ((await this.isRateLimited(req.method, req.headers['x-forwarded-for'] as string || req.socket.remoteAddress as string, req.url))) {
         return this.WriteAndEnd(res, 429, 'Too many requests');
       };
 
-      if ((await this.isBlocked(req.method, req.socket.remoteAddress, req.url))) {
+      if ((await this.isBlocked(req.method, req.socket.remoteAddress as string, req.url))) {
         return this.WriteAndEnd(res, 403, `Access Denied`);
       };
 
@@ -199,9 +200,10 @@ class Safety {
         }
       };
 
-      if (this.RateLimitBucket.size > 10000) {
-        const oldestKey = [...this.RateLimitBucket.keys()][0];
-        this.RateLimitBucket.delete(oldestKey);
+      if (Object.keys(this.RateLimitBucket).length > 10000) {
+        const oldestKey = Object.keys(this.RateLimitBucket)[0];
+        if (oldestKey)
+          delete this.RateLimitBucket[oldestKey];
       };
 
     }, this.SWEEP_INTERVAL);

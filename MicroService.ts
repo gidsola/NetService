@@ -1,17 +1,26 @@
 
-import { createServer as createHttpServer, IncomingMessage, ServerResponse } from 'http';
+import type { IncomingMessage, ServerResponse } from 'http';
+import type { SecureVersion } from 'tls';
+
+import { createServer as createHttpServer } from 'http';
 import { createServer as createSecureServer, Agent } from 'https';
+
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'fs';
-// import { URL } from 'url';
+
 import Next from 'next';
 
-import { isBlocked, isRateLimited } from './safety.mjs';
-import logger from './logger.mjs';
+import Safety from './safety';
+import logger from './logger.js';
 
 class MicroService extends EventEmitter {
   NetService;
-  NextServer;
+  private NextServer;
+  Safety;
+  private ServiceHandler;
+  development;
+  private _nextServerOptions;
+  private _httpsServerOptions;
   /**
    * @private
    */
@@ -27,42 +36,47 @@ class MicroService extends EventEmitter {
    *    sudo setcap 'cap_net_bind_service=+ep' `which node`
    * 
    */
-  constructor(DOMAIN) {
+  constructor(DOMAIN: string) {
     super();
 
-    this.development = DOMAIN === 'localhost';
+    this.Safety = new Safety();
+
+    /**@type {boolean} */
+    this.development = process.env.DEV === DOMAIN;
 
     this._nextServerOptions = {
       rejectUnauthorized: false,
       customServer: true,
       dev: this.development,
       hostname: DOMAIN,
-      port: this.development ? 80 : 443
+      port: this.development ? 80 : 443,
+      agent: {}
     };
 
     this._httpsServerOptions = {
       key: this.development
-        ? readFileSync(process.cwd() + `/main/ssl/localhost.key`)
-        : readFileSync(process.cwd() + `/main/ssl/private.key`),
+        ? readFileSync(process.env.DIR_SSL + "localhost.key")
+        : readFileSync(process.env.DIR_SSL + "private.key"),
 
       cert: this.development
-        ? readFileSync(process.cwd() + `/main/ssl/localhost.crt`)
-        : readFileSync(process.cwd() + `/main/ssl/certificate.crt`),
+        ? readFileSync(process.env.DIR_SSL + "localhost.crt")
+        : readFileSync(process.env.DIR_SSL + "certificate.crt"),
 
       ca: this.development
         ? undefined
-        : [readFileSync(process.cwd() + `/main/ssl/ca_bundle.crt`)],
+        : [readFileSync(process.env.DIR_SSL + "ca_bundle.crt")],
 
       keepAlive: false,
       requestCert: false,
       rejectUnauthorized: false,
       insecureHTTPParser: false,
-      ciphers: "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA",
-      maxVersion: "TLSv1.3",
-      minVersion: "TLSv1.2",
+      ciphers: process.env.TLS_CIPHERS,
+      maxVersion: process.env.TLS_MAXVERSION as SecureVersion,
+      minVersion: process.env.TLS_MINVERSION as SecureVersion,
       enableTrace: false,
       requestTimeout: 30000,
-      sessionTimeout: 120000
+      sessionTimeout: 120000,
+      agent: {}
     };
 
     this._httpsServerOptions.agent = new Agent(this._httpsServerOptions);
@@ -85,6 +99,8 @@ class MicroService extends EventEmitter {
    * @private
    */
   async init() {
+
+    await this.Safety.maintenance();
     await this.NextServer.prepare();
     await new Promise((resolve) => {
 
@@ -92,7 +108,7 @@ class MicroService extends EventEmitter {
       this.NetService
         .on('error', async function serviceError(err) {
           // todo
-          logger.error('NetService Error:', err);
+          logger().error('NetService Error:', err);
         })
         .on('clientError', async function clientError(err, socket) {
           socket.destroy(err);
@@ -102,9 +118,9 @@ class MicroService extends EventEmitter {
         })
         // todo
         .on('stream', async function rcvdStream(stream, headers) {
-          logger.info('stream');
+          logger().info('stream');
         })
-        .listen(this._nextServerOptions.port, resolve);
+        .listen(this._nextServerOptions.port, () => resolve);
 
     });
     this.emit('ready');
@@ -113,29 +129,29 @@ class MicroService extends EventEmitter {
 
   /**
    * @param {IncomingMessage} req
-   * @param {ServerResponse} res
+   * @param {ServerResponse<IncomingMessage>} res
    *
    * @private
    */
-  async NextRequest(req, res) {
+  async NextRequest(req: IncomingMessage, res: ServerResponse<IncomingMessage>) {
     try {
       setHeaders(res);
       return await this.NextRequestHandler(req, res);
     } catch (e) {
       console.error(e);
-      logger.error('Error handling web request:', e);
-      return WriteAndEnd(res, 500, 'Internal Server Error');
+      logger().error('Error handling web request:', e);
+      return this.Safety.WriteAndEnd(res, 500, 'Internal Server Error');
     };
   };
 
 
   /**
    * @param {IncomingMessage} req
-   * @param {ServerResponse} res
+   * @param {ServerResponse<IncomingMessage>} res
    *
    * @private
    */
-  async processRequest(req, res) {
+  async processRequest(req: IncomingMessage, res: ServerResponse<IncomingMessage>) {
     try {
       // const url = new URL(req.url || '', `https://${req.headers.host}`);
 
@@ -149,59 +165,38 @@ class MicroService extends EventEmitter {
       //     res.end('Hello nosey o,O');
       //   };
       // };
-      
+
       return await this.NextRequest(req, res);
 
     }
     catch (e) {
-      logger.error(e);
-      return WriteAndEnd(res, 500, 'Internal Server Error');
+      logger().error(e);
+      return this.Safety.WriteAndEnd(res, 500, 'Internal Server Error');
     };
   };
 
 
-  /**
-   * @param {IncomingMessage} req
-   * @param {ServerResponse} res
-   *
-   * @private
-   */
-  async isAllowed(req, res) {
-    try {
-      if (!req.method || !req.url) return res.end();
-      // if (await isBlocked(req.method, req.socket.remoteAddress, req.url)) {
-      //   console.log("ms");
-      //   return WriteAndEnd(res, 403, `Access Denied`);
-      // }
-      // if (await isRateLimited(req.method, req.headers['x-forwarded-for'] /*as string*/ || req.socket.remoteAddress, req.url)) {
-      //   return WriteAndEnd(res, 429, 'Too many requests');
-      // }
-      return true;
 
-    } catch (e) {
-      logger.error(e);
-      return WriteAndEnd(res, 500, 'Internal Server Error');
-    };
-  };
 
 
   /**
    * @param {IncomingMessage} req
-   * @param {ServerResponse} res
+   * @param {ServerResponse<IncomingMessage>} res
    *
    * @private
+   * @returns {Promise<void | ServerResponse<IncomingMessage>>}
    */
-  async ServiceResponseHandler(req, res) {
+  async ServiceResponseHandler(req: IncomingMessage, res: ServerResponse<IncomingMessage>): Promise<void | ServerResponse<IncomingMessage>> {
     try {
-      const allowedResponse = await this.isAllowed(req, res);
+      const allowedResponse = await this.Safety.isAllowed(req, res);
       return typeof allowedResponse === 'boolean'
         ? await this.processRequest(req, res)
         : allowedResponse;
 
     } catch (e) {
-      logger.error('Error:', e);
+      logger().error('Error:', e);
       console.log(e);
-      return WriteAndEnd(res, 500, 'Internal Server Error');
+      return this.Safety.WriteAndEnd(res, 500, 'Internal Server Error');
     };
   };
 
@@ -210,11 +205,11 @@ export default MicroService;
 
 
 /**
- * @param {ServerResponse} res
+ * @param {ServerResponse<IncomingMessage>} res
  * 
  * @private
  */
-function setHeaders(res) {
+function setHeaders(res: ServerResponse<IncomingMessage>) {
   // gotta be a better way..
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -232,18 +227,3 @@ function setHeaders(res) {
 };
 
 
-/**
- * @param {ServerResponse} res
- * @param {number} statusCode
- * @param {string} message
- *
- * @private
- */
-function WriteAndEnd(res, statusCode, message) {
-  return res
-    .writeHead(statusCode, {
-      'Content-Length': Buffer.byteLength(message),
-      'Content-Type': 'text/plain'
-    })
-    .end(message);
-};
