@@ -13,13 +13,13 @@ import Next from 'next';
 import Safety, { WriteAndEnd } from './safety.js';
 import logger from './logger.js';
 
-class MicroService extends EventEmitter {
+class NetService extends EventEmitter {
 
   private NextServer;
   private _nextServerOptions;
   private _httpsServerOptions;
 
-  NetService;
+  Service;
   Safety;
   development;
 
@@ -27,7 +27,7 @@ class MicroService extends EventEmitter {
   private NextRequestHandler;
 
   /**
-   * Creates a MicroService Server for the specified domain.
+   * Creates a Micro-NetService Server for the specified domain.
    * 
    * @param DOMAIN - The domain name for the service. If 'localhost', the service will run in development mode.
    * 
@@ -68,7 +68,7 @@ class MicroService extends EventEmitter {
       requestCert: false,
       rejectUnauthorized: false,
       insecureHTTPParser: false,
-      ciphers: process.env.TLS_CIPHERS,
+      ciphers: process.env.TLS_CIPHERS ?? "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA",
       maxVersion: process.env.TLS_MAXVERSION as SecureVersion ?? "TLSv1.3",
       minVersion: process.env.TLS_MINVERSION as SecureVersion ?? "TLSv1.2",
       enableTrace: false,
@@ -84,7 +84,7 @@ class MicroService extends EventEmitter {
     this.NextRequestHandler = this.NextServer.getRequestHandler();
 
     this.ServiceHandler = this.ServiceResponseHandler.bind(this);
-    this.NetService =
+    this.Service =
       this.development
         ? createHttpServer(this.ServiceHandler)
         : createSecureServer(this._httpsServerOptions, this.ServiceHandler);
@@ -100,7 +100,7 @@ class MicroService extends EventEmitter {
     await new Promise((resolve, reject) => {
       try {
         // re-visit the listeners
-        this.NetService
+        this.Service
           .on('error', async function serviceError(e) {
             // todo
             logger('@NetService').error(e instanceof Error ? e.message : e);
@@ -183,7 +183,7 @@ class MicroService extends EventEmitter {
   };
 
 };
-export default MicroService;
+export default NetService;
 
 
 

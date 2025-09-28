@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { EventEmitter } from 'node:events';
 import Safety from './safety.js';
-declare class MicroService extends EventEmitter {
+declare class NetService extends EventEmitter {
     private NextServer;
     private _nextServerOptions;
     private _httpsServerOptions;
@@ -11,7 +11,7 @@ declare class MicroService extends EventEmitter {
     private ServiceHandler;
     private NextRequestHandler;
     /**
-     * Creates a MicroService Server for the specified domain.
+     * Creates a Micro-NetService Server for the specified domain.
      *
      * @param DOMAIN - The domain name for the service. If 'localhost', the service will run in development mode.
      *
@@ -26,5 +26,5 @@ declare class MicroService extends EventEmitter {
     private processRequest;
     private ServiceResponseHandler;
 }
-export default MicroService;
-//# sourceMappingURL=MicroService.d.ts.map
+export default NetService;
+//# sourceMappingURL=netservice.d.ts.map

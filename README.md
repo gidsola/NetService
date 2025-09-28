@@ -31,7 +31,7 @@ import NetService from 'netservice';
 const service = new NetService('yourdomain.com'); // Auto-detects dev/prod
 
 service.on('ready', () => {
-  console.log(`Server running on ${service.development ? 'http://localhost' : 'https://yourdomain.com'}`);
+  console.log(`Server running!`);
 });
 ```
 
@@ -41,8 +41,7 @@ service.on('ready', () => {
 
 ### Environment Variables (`.env`)
 ```env
-DEV="localhost"          # Dev mode if DEV === DOMAIN
-DOMAIN="yourdomain.com"  # Production domain
+DOMAIN="yourdomain.com"  # Production domain. Use 'localhost'for development.
 DIR_SSL="/path/to/certs/" # Full path to SSL certificates
 TLS_CIPHERS="..."        # OpenSSL cipher string (optional)
 TLS_MINVERSION="TLSv1.2" # Minimum TLS version (optional)
@@ -95,7 +94,7 @@ class MySafety extends Safety {
 |------------|---------------------------------|
 | `ready`    | Server started                  |
 | `error`    | Server error occurred           |
-| `stream`   | HTTP/2 stream received          |
+|            |                                 |
 
 ```javascript
 service.on('error', (err) => {
