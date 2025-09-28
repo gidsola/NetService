@@ -88,11 +88,12 @@ class Safety {
 
 
   /**
-   * 
+   * @param {string} method
    * @param {string} address
+   * @param {string} url
    * @param {BanData} banData
    */
-  async setIPBlock(address, banData) {
+  async setIPBlock(method, address, url, banData) {
     try {
       this.ipBlockList.set(address, { ...banData });
       this.logAccess("ip", method, address, url);
@@ -100,8 +101,8 @@ class Safety {
     }
     catch (/**@type {any}*/e) {
       e instanceof Error
-        ? logger().error("Error setting IP block", e.message)
-        : logger().error("Error setting IP block", e)
+        ? logger().error("Error setting IP block" + e.message)
+        : logger().error("Error setting IP block" + e)
       return false;
     };
   };
@@ -136,13 +137,11 @@ class Safety {
     this.RateLimitBucket[key] = rateLimitData;
 
     if (rateLimitData.count > this.RATE_LIMIT) {
-      return await this.setIPBlock(address, {
-        banExpiry: now + BAN_LENGTH,
+      return await this.setIPBlock(method, address, url, {
+        banExpiry: now + this.BAN_LENGTH,
         reason: `Exceeded ${this.RATE_LIMIT} requests to ${url}`,
       });
     };
-
-
 
     return false;
   };
@@ -184,7 +183,7 @@ class Safety {
       return true;
 
     } catch (e) {
-      logger().error(e);
+      logger().error(e instanceof Error ? e.message : e);
       return this.WriteAndEnd(res, 500, 'Internal Server Error');
     };
   };
@@ -196,7 +195,7 @@ class Safety {
       const now = Date.now();
       if (process.env.DEBUG === "true")
         logger('@MAINTENANCE').info("Performing RateLimit Bucket Maintenance..");
-      
+
       for (const [key, data] of Object.entries(this.RateLimitBucket)) {
         if (now - data.lastSeen > this.INACTIVITY_LENGTH) {
           delete this.RateLimitBucket[key];
