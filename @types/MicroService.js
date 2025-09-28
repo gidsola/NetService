@@ -78,7 +78,7 @@ class MicroService extends EventEmitter {
      * @private
      */
     async init() {
-        await this.Safety.maintenance();
+        this.Safety.maintenance();
         await this.NextServer.prepare();
         await new Promise((resolve) => {
             // re-visit the listeners
@@ -97,9 +97,12 @@ class MicroService extends EventEmitter {
                 .on('stream', async function rcvdStream(stream, headers) {
                 logger().info('stream');
             })
-                .listen(this._nextServerOptions.port, () => resolve);
+                .listen(this._nextServerOptions.port, () => {
+                this.emit('ready');
+                resolve;
+            });
         });
-        this.emit('ready');
+        ;
     }
     ;
     /**
