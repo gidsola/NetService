@@ -1,10 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { EventEmitter } from 'node:events';
+import Next from 'next';
+type NextCustom = ReturnType<typeof Next>;
 import Safety from './safety.js';
 declare class NetService extends EventEmitter {
-    private NextServer;
     private _nextServerOptions;
     private _httpsServerOptions;
+    NextServer: NextCustom;
     Service: import("http").Server<typeof IncomingMessage, typeof ServerResponse> | import("https").Server<typeof IncomingMessage, typeof ServerResponse>;
     Safety: Safety;
     development: boolean;

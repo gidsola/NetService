@@ -9,16 +9,18 @@ import { EventEmitter } from 'node:events';
 import { readFileSync } from 'fs';
 
 import Next from 'next';
+// import type { NextServer } from 'next/dist/server/next';
+type NextCustom = ReturnType<typeof Next>;
 
 import Safety, { WriteAndEnd } from './safety.js';
 import logger from './logger.js';
 
 class NetService extends EventEmitter {
 
-  private NextServer;
   private _nextServerOptions;
   private _httpsServerOptions;
 
+  NextServer: NextCustom;
   Service;
   Safety;
   development;
