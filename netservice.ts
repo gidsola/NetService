@@ -189,7 +189,7 @@ export default NetService;
 
 function setHeaders(res: ServerResponse<IncomingMessage>) {
   // gotta be a better way..
-  // def need to re-visit these, locale to start.
+  // def need to re-visit these, locale to start. permissions etc, need to be adjustable per user.
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-XSS-Protection', '1; mode=block');
