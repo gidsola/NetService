@@ -5,7 +5,7 @@ declare class NetService extends EventEmitter {
     private NextServer;
     private _nextServerOptions;
     private _httpsServerOptions;
-    NetService: import("http").Server<typeof IncomingMessage, typeof ServerResponse> | import("https").Server<typeof IncomingMessage, typeof ServerResponse>;
+    Service: import("http").Server<typeof IncomingMessage, typeof ServerResponse> | import("https").Server<typeof IncomingMessage, typeof ServerResponse>;
     Safety: Safety;
     development: boolean;
     private ServiceHandler;

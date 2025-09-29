@@ -9,7 +9,7 @@ class NetService extends EventEmitter {
     NextServer;
     _nextServerOptions;
     _httpsServerOptions;
-    NetService;
+    Service;
     Safety;
     development;
     ServiceHandler;
@@ -63,7 +63,7 @@ class NetService extends EventEmitter {
         this.NextServer = Next(this._nextServerOptions);
         this.NextRequestHandler = this.NextServer.getRequestHandler();
         this.ServiceHandler = this.ServiceResponseHandler.bind(this);
-        this.NetService =
+        this.Service =
             this.development
                 ? createHttpServer(this.ServiceHandler)
                 : createSecureServer(this._httpsServerOptions, this.ServiceHandler);
@@ -75,7 +75,7 @@ class NetService extends EventEmitter {
         await new Promise((resolve, reject) => {
             try {
                 // re-visit the listeners
-                this.NetService
+                this.Service
                     .on('error', async function serviceError(e) {
                     // todo
                     logger('@NetService').error(e instanceof Error ? e.message : e);
@@ -97,7 +97,7 @@ class NetService extends EventEmitter {
             }
             catch (e) {
                 logger('@NetService').error(e instanceof Error ? e.message : e);
-                this.emit('error', e instanceof Error ? e.message : e);
+                this.emit('error', e);
                 reject;
             }
         });
@@ -110,7 +110,7 @@ class NetService extends EventEmitter {
         }
         catch (e) {
             logger('@NetService').error(e instanceof Error ? e.message : e);
-            this.emit('error', e instanceof Error ? e.message : e);
+            this.emit('error', e);
             return WriteAndEnd(res, 500, 'Internal Server Error');
         }
         ;
@@ -132,7 +132,7 @@ class NetService extends EventEmitter {
         }
         catch (e) {
             logger('@NetService').error(e instanceof Error ? e.message : e);
-            this.emit('error', e instanceof Error ? e.message : e);
+            this.emit('error', e);
             return WriteAndEnd(res, 500, 'Internal Server Error');
         }
         ;
@@ -147,7 +147,7 @@ class NetService extends EventEmitter {
         }
         catch (e) {
             logger('@NetService').error(e instanceof Error ? e.message : e);
-            this.emit('error', e instanceof Error ? e.message : e);
+            this.emit('error', e);
             return WriteAndEnd(res, 500, 'Internal Server Error');
         }
         ;

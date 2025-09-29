@@ -122,7 +122,7 @@ class NetService extends EventEmitter {
       }
       catch (e) {
         logger('@NetService').error(e instanceof Error ? e.message : e);
-        this.emit('error', e instanceof Error ? e.message : e);
+        this.emit('error', e);
         reject;
       }
     });
@@ -136,7 +136,7 @@ class NetService extends EventEmitter {
     }
     catch (e) {
       logger('@NetService').error(e instanceof Error ? e.message : e);
-      this.emit('error', e instanceof Error ? e.message : e);
+      this.emit('error', e);
       return WriteAndEnd(res, 500, 'Internal Server Error');
     };
   };
@@ -162,7 +162,7 @@ class NetService extends EventEmitter {
     }
     catch (e) {
       logger('@NetService').error(e instanceof Error ? e.message : e);
-      this.emit('error', e instanceof Error ? e.message : e);
+      this.emit('error', e);
       return WriteAndEnd(res, 500, 'Internal Server Error');
     };
   };
@@ -177,7 +177,7 @@ class NetService extends EventEmitter {
 
     } catch (e) {
       logger('@NetService').error(e instanceof Error ? e.message : e);
-      this.emit('error', e instanceof Error ? e.message : e);
+      this.emit('error', e);
       return WriteAndEnd(res, 500, 'Internal Server Error');
     };
   };
