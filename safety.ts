@@ -6,8 +6,6 @@ type BanData = { banExpiry: number; reason: string; };
 
 type LimitData = { count: number; lastSeen: number; };
 
-// type Response = ServerResponse<IncomingMessage>; // using Response for a name was dumb...
-
 class Safety {
   private urlBlockList: { url: string; }[];
   private ipBlockList: Map<string, BanData> = new Map();
