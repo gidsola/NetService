@@ -4,6 +4,7 @@ import Next from 'next';
 type NextCustom = ReturnType<typeof Next>;
 import Safety from './safety.js';
 declare class NetService extends EventEmitter {
+    private middlewareMgr;
     private _nextServerOptions;
     private _httpsServerOptions;
     NextServer: NextCustom;
@@ -25,8 +26,7 @@ declare class NetService extends EventEmitter {
     constructor(DOMAIN: string);
     private init;
     private NextRequest;
-    private processRequest;
-    private ServiceResponseHandler;
+    private handleRequest;
 }
 export default NetService;
 //# sourceMappingURL=netservice.d.ts.map

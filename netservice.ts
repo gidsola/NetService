@@ -9,14 +9,15 @@ import { EventEmitter } from 'node:events';
 import { readFileSync } from 'fs';
 
 import Next from 'next';
-// import type { NextServer } from 'next/dist/server/next';
 type NextCustom = ReturnType<typeof Next>;
 
+import MiddlewareMgr from './middleware.js';
 import Safety, { WriteAndEnd } from './safety.js';
 import logger from './logger.js';
 
 class NetService extends EventEmitter {
 
+  private middlewareMgr = new MiddlewareMgr();
   private _nextServerOptions;
   private _httpsServerOptions;
 
@@ -85,7 +86,7 @@ class NetService extends EventEmitter {
     this.NextServer = Next(this._nextServerOptions);
     this.NextRequestHandler = this.NextServer.getRequestHandler();
 
-    this.ServiceHandler = this.ServiceResponseHandler.bind(this);
+    this.ServiceHandler = this.handleRequest.bind(this);
     this.Service =
       this.development
         ? createHttpServer(this.ServiceHandler)
@@ -97,14 +98,16 @@ class NetService extends EventEmitter {
 
   private async init() {
 
+    this.middlewareMgr.register('/', this.Safety.mwRateLimit());
+    this.middlewareMgr.register('/', this.Safety.mwBlockList());
+
     await this.NextServer.prepare();
 
-    await new Promise((resolve, reject) => {
+    return new Promise<boolean>((resolve, reject) => {
       try {
         // re-visit the listeners
         this.Service
           .on('error', async function serviceError(e) {
-            // todo
             logger('@NetService').error(e instanceof Error ? e.message : e);
           })
           .on('clientError', async function clientError(e, socket) {
@@ -119,14 +122,14 @@ class NetService extends EventEmitter {
           })
           .listen(this._nextServerOptions.port, () => {
             this.emit('ready');
-            resolve;
+            resolve(true);
           });
       }
       catch (e) {
         logger('@NetService').error(e instanceof Error ? e.message : e);
         this.emit('error', e);
-        reject;
-      }
+        reject(false);
+      };
     });
   };
 
@@ -144,38 +147,12 @@ class NetService extends EventEmitter {
   };
 
 
-  private async processRequest(req: IncomingMessage, res: ServerResponse<IncomingMessage>) {
+  private async handleRequest(req: IncomingMessage, res: ServerResponse<IncomingMessage>): Promise<void | ServerResponse<IncomingMessage>> {
     try {
-      // const url = new URL(req.url || '', `https://${req.headers.host}`);
+      const url = new URL(req.url || '', `https://${req.headers.host}`);
+      if (!await this.middlewareMgr.process(req, res, url.pathname)) return;
 
-      // if (url.pathname.startsWith("/v1/")) {
-      //   return WriteAndEnd(res, 403, `Access Denied`);
-
-      //   if (endpoints[url.pathname])
-      //     await endpoints[url.pathname](req, res);
-      //   else {
-      //     res.writeHead(200, { 'Content-Type': 'application/json' });
-      //     res.end('Hello nosey o,O');
-      //   };
-      // };
-
-      return await this.NextRequest(req, res);
-
-    }
-    catch (e) {
-      logger('@NetService').error(e instanceof Error ? e.message : e);
-      this.emit('error', e);
-      return WriteAndEnd(res, 500, 'Internal Server Error');
-    };
-  };
-
-
-  private async ServiceResponseHandler(req: IncomingMessage, res: ServerResponse<IncomingMessage>): Promise<void | ServerResponse<IncomingMessage>> {
-    try {
-      const allowedResponse = await this.Safety.isAllowed(req, res);
-      return typeof allowedResponse === 'boolean'
-        ? await this.processRequest(req, res)
-        : allowedResponse;
+      await this.NextRequest(req, res);
 
     } catch (e) {
       logger('@NetService').error(e instanceof Error ? e.message : e);
@@ -183,6 +160,7 @@ class NetService extends EventEmitter {
       return WriteAndEnd(res, 500, 'Internal Server Error');
     };
   };
+
 
 };
 export default NetService;

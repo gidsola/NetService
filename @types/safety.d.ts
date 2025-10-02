@@ -1,5 +1,4 @@
 import { IncomingMessage, ServerResponse } from 'http';
-type Response = ServerResponse<IncomingMessage>;
 declare class Safety {
     private urlBlockList;
     private ipBlockList;
@@ -14,14 +13,19 @@ declare class Safety {
     private isBlocked;
     private setIPBlock;
     private isRateLimited;
-    isAllowed(req: IncomingMessage, res: Response): Promise<true | Response>;
-    /**
-     * @deprecated
-     */
-    maintenance(): Promise<void>;
     private broom;
     cleanup(): Promise<boolean>;
+    /**
+     *
+     * for middleware use
+     */
+    mwRateLimit(): (req: IncomingMessage, res: ServerResponse<IncomingMessage>, go: () => Promise<void>) => Promise<void | ServerResponse<IncomingMessage>>;
+    /**
+     *
+     * for middleware use
+     */
+    mwBlockList(): (req: IncomingMessage, res: ServerResponse<IncomingMessage>, go: () => Promise<void>) => Promise<void | ServerResponse<IncomingMessage>>;
 }
 export default Safety;
-export declare function WriteAndEnd(res: Response, statusCode: number, message: string): Promise<Response>;
+export declare function WriteAndEnd(res: ServerResponse<IncomingMessage>, statusCode: number, message: string): Promise<ServerResponse<IncomingMessage>>;
 //# sourceMappingURL=safety.d.ts.map

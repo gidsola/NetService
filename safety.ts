@@ -6,19 +6,12 @@ type BanData = { banExpiry: number; reason: string; };
 
 type LimitData = { count: number; lastSeen: number; };
 
-type Response = ServerResponse<IncomingMessage>;
+// type Response = ServerResponse<IncomingMessage>; // using Response for a name was dumb...
 
 class Safety {
-  private urlBlockList: {
-    url: string;
-  }[];
-  private ipBlockList: Map<any, any>;
-  private RateLimitBucket: {
-    [x: string]: {
-      count: number,
-      lastSeen: number
-    }
-  };
+  private urlBlockList: { url: string; }[];
+  private ipBlockList: Map<string, BanData> = new Map();
+  private RateLimitBucket: Map<string, LimitData> = new Map();
 
   private RATE_LIMIT: number;
   private INACTIVITY_LENGTH: number;
@@ -28,9 +21,7 @@ class Safety {
 
   constructor() {
 
-    this.urlBlockList = [{ url: "/admin" }];
-    this.ipBlockList = new Map();
-    this.RateLimitBucket = {};
+    this.urlBlockList = [{ url: "/admin" }]; // don't forget when setting other mws
 
     this.RATE_LIMIT = 10;
     this.INACTIVITY_LENGTH = 10000;
@@ -68,7 +59,6 @@ class Safety {
 
   private async isBlocked(method: string, address: string, url: string) {
     try {
-      if (address.includes("::1")) return false;
       const now = Date.now();
 
       if (this.urlBlockList.some((x) => url === x.url)) {
@@ -76,8 +66,8 @@ class Safety {
         return true;
       };
 
-      const ipBanData: BanData = this.ipBlockList.get(address);
-      if (ipBanData?.banExpiry > now) {
+      const ipBanData: BanData | undefined = this.ipBlockList.get(address);
+      if (ipBanData && ipBanData.banExpiry > now) {
         this.logAccess("ip", method, address, url);
         return true;
       };
@@ -85,10 +75,9 @@ class Safety {
       return false;
     }
     catch (e) {
-      return true; // just incase the fail is due to the user.
+      return true; // just incase the fail is due to the user.// think about this
     };
   };
-
 
 
   private async setIPBlock(method: string, address: string, url: string, banData: BanData) {
@@ -104,25 +93,23 @@ class Safety {
   };
 
 
-
   private async isRateLimited(method: string, address: string, url: string) {
     try {
-      if (address.includes("::1")) return false;
       const
         now = Date.now(),
         key = address + ":" + url,
-        ipBanData: BanData = this.ipBlockList.get(address);
+        ipBanData = this.ipBlockList.get(address);
 
-      if (ipBanData?.banExpiry > now) {
+      if (ipBanData && ipBanData.banExpiry > now) {
         this.logAccess("ban", method, address, url, new Date(ipBanData.banExpiry));
         return true;
       };
 
-      const rateLimitData: LimitData = this.RateLimitBucket[key] || { count: 0, lastSeen: now };
+      const rateLimitData = this.RateLimitBucket.get(key) || { count: 0, lastSeen: now };
 
       rateLimitData.count++;
       rateLimitData.lastSeen = now;
-      this.RateLimitBucket[key] = rateLimitData;
+      this.RateLimitBucket.set(key, rateLimitData);
 
       if (rateLimitData.count > this.RATE_LIMIT) {
         return await this.setIPBlock(method, address, url, {
@@ -140,89 +127,38 @@ class Safety {
   };
 
 
-  async isAllowed(req: IncomingMessage, res: Response) {
-    try {
-      if (!req.method || !req.url || req.method === "POST") return res.end(); // dont forget posts are blocked..
-
-      if ((await this.isRateLimited(req.method, req.headers['x-forwarded-for'] as string || req.socket.remoteAddress as string, req.url))) {
-        return WriteAndEnd(res, 429, 'Too many requests');
-      };
-
-      if ((await this.isBlocked(req.method, req.socket.remoteAddress as string, req.url))) {
-        return WriteAndEnd(res, 403, `Access Denied`);
-      };
-
-      return true;
-
-    } catch (e) {
-      logger('@SAFETY').error(e instanceof Error ? e.message : e);
-      return WriteAndEnd(res, 500, 'Internal Server Error');
-    };
-  };
-
-
-  /**
-   * @deprecated
-   */
-  async maintenance() {
-    try {
-      logger('@MAINTENANCE').info("Initializing maintenance...");
-
-      // this.SWEEP_TIMER = setInterval(() => {
-      //   const now = Date.now();
-
-      //   if (process.env.DEBUG === "true")
-      //     logger('@MAINTENANCE').info("Performing RateLimit Bucket Maintenance..");
-
-      //   for (const [key, data] of Object.entries(this.RateLimitBucket)) {
-      //     if (now - data.lastSeen > this.INACTIVITY_LENGTH) {
-      //       delete this.RateLimitBucket[key];
-      //     }
-      //   };
-
-      //   for (const [ip, banData] of this.ipBlockList.entries()) {
-      //     if (banData.banExpiry <= now) {
-      //       this.ipBlockList.delete(ip);
-      //     }
-      //   };
-
-      //   if (Object.keys(this.RateLimitBucket).length > 10000) {
-      //     const oldestKey = Object.keys(this.RateLimitBucket)[0];
-      //     if (oldestKey)
-      //       delete this.RateLimitBucket[oldestKey];
-      //   };
-
-      // }, this.SWEEP_INTERVAL);
-    }
-    catch (e) {
-      logger('@SYSTEM').error(e instanceof Error ? e.message : e);
-    };
-  };
-
-
   private broom = async () => {
     const now = Date.now();
 
     if (process.env.DEBUG === "true")
       logger('@MAINTENANCE').info("Performing RateLimit Bucket Maintenance..");
 
-    for (const [key, data] of Object.entries(this.RateLimitBucket)) {
+    for (const [key, data] of this.RateLimitBucket) {
       if (now - data.lastSeen > this.INACTIVITY_LENGTH) {
-        delete this.RateLimitBucket[key];
+        this.RateLimitBucket.delete(key);
       }
     };
 
-    for (const [ip, banData] of this.ipBlockList.entries()) {
+    for (const [ip, banData] of this.ipBlockList) {
       if (banData.banExpiry <= now) {
         this.ipBlockList.delete(ip);
       }
     };
 
-    if (Object.keys(this.RateLimitBucket).length > 10000) {
-      const oldestKey = Object.keys(this.RateLimitBucket)[0];
-      if (oldestKey)
-        delete this.RateLimitBucket[oldestKey];
-    };
+    if (this.RateLimitBucket.size > 10000) {
+      let
+        oldestKey: string | undefined,
+        oldestTime = Infinity;
+
+      for (const [key, data] of this.RateLimitBucket) {
+        if (data.lastSeen < oldestTime) {
+          oldestKey = key;
+          oldestTime = data.lastSeen;
+        };
+      };
+
+      if (oldestKey) this.RateLimitBucket.delete(oldestKey);
+    }
   };
 
 
@@ -236,7 +172,7 @@ class Safety {
         this.SWEEP_TIMER = undefined;
       };
 
-      this.RateLimitBucket = {};
+      this.RateLimitBucket.clear();
       this.ipBlockList.clear();
 
       return true;
@@ -247,11 +183,51 @@ class Safety {
     };
   };
 
+
+  /**
+   * 
+   * for middleware use
+   */
+  public mwRateLimit() {
+    return async (req: IncomingMessage, res: ServerResponse<IncomingMessage>, go: () => Promise<void>) => {
+      const
+        ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress as string,
+        url = req.url!;
+
+      if (await this.isRateLimited(req.method!, ip, url)) {
+        return WriteAndEnd(res, 429, 'Too many requests');
+      };
+
+      return await go();
+
+    };
+  };
+
+
+  /**
+   * 
+   * for middleware use
+   */
+  public mwBlockList() {
+    return async (req: IncomingMessage, res: ServerResponse<IncomingMessage>, go: () => Promise<void>) => {
+      const
+        ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress as string,
+        url = req.url!;
+
+      if (await this.isBlocked(req.method!, ip, url)) {
+        return WriteAndEnd(res, 403, 'Access Denied');
+      };
+
+      return await go();
+
+    };
+  };
+
 };
 export default Safety;
 
 
-export async function WriteAndEnd(res: Response, statusCode: number, message: string) {
+export async function WriteAndEnd(res: ServerResponse<IncomingMessage>, statusCode: number, message: string) {
   return res
     .writeHead(statusCode, {
       'Content-Length': Buffer.byteLength(message),
