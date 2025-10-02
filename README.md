@@ -158,17 +158,6 @@ service.Safety = new CustomSafety();
 - `error`  
 
 
-## 📦 Cleanup
-### ⚠️ This is going to be implemented internally for safety. ⚠️  
-
-Gracefully shut down resources:
-```JavaScript
-process.on('SIGTERM', async () => {
-  await service.Safety.cleanup(); // Clear timers and data
-  process.exit(0);
-});
-```
-
 ## 🤝 Contributing
 ### Issues and PRs welcome!  
 ### Focus areas:  

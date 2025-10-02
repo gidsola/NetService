@@ -107,19 +107,29 @@ class NetService extends EventEmitter {
       try {
         // re-visit the listeners
         this.Service
+
           .on('error', async function serviceError(e) {
             logger('@NetService').error(e instanceof Error ? e.message : e);
           })
+
           .on('clientError', async function clientError(e, socket) {
             socket.destroy(e);
           })
+
           .on('tlsClientError', async function tlsClientError(e, socket) {
             socket.destroy(e);
           })
-          // todo
-          .on('stream', async function rcvdStream(stream, headers) {
-            logger().info('stream');
+
+          // commenting for now, no need to take up space.
+          // .on('stream', async function rcvdStream(stream, headers) {
+          //   logger().info('stream');
+          // })
+
+          .on('close', async () => {
+              await this.Safety.cleanup();
+              logger('@NetService').info('Server closed. Cleanup completed.');
           })
+
           .listen(this._nextServerOptions.port, () => {
             this.emit('ready');
             resolve(true);

@@ -93,6 +93,10 @@ class NetService extends EventEmitter {
                     .on('stream', async function rcvdStream(stream, headers) {
                     logger().info('stream');
                 })
+                    .on('close', async () => {
+                    await this.Safety.cleanup();
+                    logger('@NetService').info('Server closed. Cleanup completed.');
+                })
                     .listen(this._nextServerOptions.port, () => {
                     this.emit('ready');
                     resolve(true);

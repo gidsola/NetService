@@ -1,7 +1,6 @@
 import { IncomingMessage, ServerResponse } from 'http';
 import logger from './logger.js';
 import chalk from 'chalk';
-// type Response = ServerResponse<IncomingMessage>; // using Response for a name was dumb...
 class Safety {
     urlBlockList;
     ipBlockList = new Map();
