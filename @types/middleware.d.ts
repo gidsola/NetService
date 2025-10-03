@@ -1,14 +1,15 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-type Middleware = (req: IncomingMessage, res: ServerResponse<IncomingMessage>, go: () => Promise<void>) => Promise<void | ServerResponse<IncomingMessage>>;
+type Middleware = (req: IncomingMessage, res: ServerResponse<IncomingMessage>) => Promise<ServerResponse<IncomingMessage> | undefined>;
 declare class MiddlewareMgr {
     private middlewares;
+    private dr_allcome;
     /**
      * Register middleware for a specific path.
      *
      * @param path URL path (ie: "/api")
      * @param middleware Middleware function
      */
-    register(path: string, middleware: Middleware): void;
+    register(path: string, middleware: Middleware): this;
     /**
      * Execute middlewares sequentially.
      *

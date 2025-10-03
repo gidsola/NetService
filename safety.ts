@@ -1,52 +1,80 @@
 import { IncomingMessage, ServerResponse } from 'http';
+import { WriteAndEnd } from './helpers.js';
 import logger from './logger.js';
 import chalk from 'chalk';
 
+/**
+ * Represents ban data for an IP address.
+ */
 type BanData = { banExpiry: number; reason: string; };
-
+/**
+ * Represents rate limit tracking data for a specific IP+URL combination.
+ */
 type LimitData = { count: number; lastSeen: number; };
 
-class Safety {
-  private urlBlockList: { url: string; }[];
-  private ipBlockList: Map<string, BanData> = new Map();
-  private RateLimitBucket: Map<string, LimitData> = new Map();
 
+/**
+ * A security utility class for rate limiting, IP blocking, and URL blocking.
+ * Automatically sweeps expired bans and inactive rate-limit entries at fixed intervals.
+ */
+class Safety {
+
+  private URL_BLOCKLIST: { url: string; }[];
+  private IP_BLOCKLIST: Map<string, BanData> = new Map();
+  private RATE_LIMIT_BUCKET: Map<string, LimitData> = new Map();
   private RATE_LIMIT: number;
   private INACTIVITY_LENGTH: number;
   private BAN_LENGTH: number;
   private SWEEP_INTERVAL: number;
   private SWEEP_TIMER: NodeJS.Timeout | undefined;
 
+
+  /**
+   * Creates a new Safety instance with default configurations.
+   * Initializes a maintenance timer to clean up expired bans and stale rate-limit data.
+   */
   constructor() {
 
-    this.urlBlockList = [{ url: "/admin" }]; // don't forget when setting other mws
+    /* These values can be overidden(not yet) by passing an options object to the middlewares. (NYI)*/
 
-    this.RATE_LIMIT = 10;
-    this.INACTIVITY_LENGTH = 10000;
-    this.BAN_LENGTH = 300000;
-    this.SWEEP_INTERVAL = 60000;
+    this.URL_BLOCKLIST = process.env.URL_BLOCKLIST
+      ? process.env.URL_BLOCKLIST.split(',').map((url) => { return { url } })
+      : [];
+
+    this.RATE_LIMIT = process.env.RATE_LIMIT
+      ? parseInt(process.env.RATE_LIMIT)
+      : 10;
+
+    this.INACTIVITY_LENGTH = process.env.INACTIVITY_LENGTH
+      ? parseInt(process.env.INACTIVITY_LENGTH)
+      : 10000;
+
+    this.BAN_LENGTH = process.env.BAN_LENGTH
+      ? parseInt(process.env.BAN_LENGTH)
+      : 300000;
+
+    this.SWEEP_INTERVAL = process.env.SWEEP_INTERVAL
+      ? parseInt(process.env.SWEEP_INTERVAL)
+      : 60000;
+
     this.SWEEP_TIMER = setInterval(async () => {
       try {
-        if (process.env.DEBUG === "true")
-          logger('@MAINTENANCE').info("Grabbin a broom...");
-
+        if (process.env.DEBUG === "true") logger('@MAINTENANCE').info("Grabbin a broom...");
         await this.broom();
       }
-      catch (e) {
-        logger('@SAFETY').error('Broom failed:' + e);
-      }
+      catch (e) { logger('@SAFETY').error('Broom failed:' + e); };
     }, this.SWEEP_INTERVAL);
 
   }
 
 
+  /**
+   * Logs access attempts with visual formatting for blocked requests.
+   */
   private logAccess(type: string, method: string, address: string, url: string, a: any | null = null) {
     const
       msgString = () => `${chalk.bgBlueBright(address)}: (Method: ${method}, URL: ${chalk.bgBlue(url)}`,
-      blockType: {
-        [x: string]: (a: any | null) => {};
-      } =
-      {
+      blockType: { [x: string]: (a: any | null) => {}; } = {
         "url": () => logger("@SAFETY").warn(`[${chalk.bgRedBright("[BLOCKED URL]")}] => ${msgString()}\n`),
         "ip": () => logger("@SAFETY").warn(`[${chalk.bgRedBright("[BLOCKED IP]")}] => ${msgString()}\n`),
         "ban": (a) => logger("@SAFETY").warn(`[${chalk.bgRedBright("BANNED")}] => ${chalk.bgBlueBright(address)} until ${a}\n`)
@@ -55,16 +83,19 @@ class Safety {
   };
 
 
+  /**
+   * Checks if a request is blocked due to URL or active IP ban.
+   */
   private async isBlocked(method: string, address: string, url: string) {
     try {
       const now = Date.now();
 
-      if (this.urlBlockList.some((x) => url === x.url)) {
+      if (this.URL_BLOCKLIST.some((x) => url === x.url)) {
         this.logAccess("url", method, address, url);
         return true;
       };
 
-      const ipBanData: BanData | undefined = this.ipBlockList.get(address);
+      const ipBanData = this.IP_BLOCKLIST.get(address);
       if (ipBanData && ipBanData.banExpiry > now) {
         this.logAccess("ip", method, address, url);
         return true;
@@ -73,14 +104,17 @@ class Safety {
       return false;
     }
     catch (e) {
-      return true; // just incase the fail is due to the user.// think about this
+      return true; // think about this
     };
   };
 
 
+  /**
+   * Bans an IP address and logs the action.
+   */
   private async setIPBlock(method: string, address: string, url: string, banData: BanData) {
     try {
-      this.ipBlockList.set(address, { ...banData });
+      this.IP_BLOCKLIST.set(address, { ...banData });
       this.logAccess("ip", method, address, url);
       return true;
     }
@@ -91,23 +125,26 @@ class Safety {
   };
 
 
+  /**
+   * Checks if a request exceeds rate limits and bans the IP if necessary.
+   */
   private async isRateLimited(method: string, address: string, url: string) {
     try {
       const
         now = Date.now(),
         key = address + ":" + url,
-        ipBanData = this.ipBlockList.get(address);
+        ipBanData = this.IP_BLOCKLIST.get(address);
 
       if (ipBanData && ipBanData.banExpiry > now) {
         this.logAccess("ban", method, address, url, new Date(ipBanData.banExpiry));
         return true;
       };
 
-      const rateLimitData = this.RateLimitBucket.get(key) || { count: 0, lastSeen: now };
+      const rateLimitData = this.RATE_LIMIT_BUCKET.get(key) || { count: 0, lastSeen: now };
 
       rateLimitData.count++;
       rateLimitData.lastSeen = now;
-      this.RateLimitBucket.set(key, rateLimitData);
+      this.RATE_LIMIT_BUCKET.set(key, rateLimitData);
 
       if (rateLimitData.count > this.RATE_LIMIT) {
         return await this.setIPBlock(method, address, url, {
@@ -125,41 +162,47 @@ class Safety {
   };
 
 
+  /**
+   * Cleans up expired bans and stale rate-limit entries.
+   */
   private broom = async () => {
     const now = Date.now();
 
     if (process.env.DEBUG === "true")
       logger('@MAINTENANCE').info("Performing RateLimit Bucket Maintenance..");
 
-    for (const [key, data] of this.RateLimitBucket) {
+    for (const [key, data] of this.RATE_LIMIT_BUCKET) {
       if (now - data.lastSeen > this.INACTIVITY_LENGTH) {
-        this.RateLimitBucket.delete(key);
+        this.RATE_LIMIT_BUCKET.delete(key);
       }
     };
 
-    for (const [ip, banData] of this.ipBlockList) {
+    for (const [ip, banData] of this.IP_BLOCKLIST) {
       if (banData.banExpiry <= now) {
-        this.ipBlockList.delete(ip);
+        this.IP_BLOCKLIST.delete(ip);
       }
     };
 
-    if (this.RateLimitBucket.size > 10000) {
+    if (this.RATE_LIMIT_BUCKET.size > 10000) {
       let
-        oldestKey: string | undefined,
+        oldestKey: string = '',
         oldestTime = Infinity;
 
-      for (const [key, data] of this.RateLimitBucket) {
+      for (const [key, data] of this.RATE_LIMIT_BUCKET) {
         if (data.lastSeen < oldestTime) {
           oldestKey = key;
           oldestTime = data.lastSeen;
         };
       };
 
-      if (oldestKey) this.RateLimitBucket.delete(oldestKey);
+      if (oldestKey) this.RATE_LIMIT_BUCKET.delete(oldestKey);
     }
   };
 
 
+  /**
+   * Cleans up timers and resets all block/rate-limit data.
+   */
   async cleanup() {
     try {
       if (process.env.DEBUG === "true")
@@ -170,8 +213,8 @@ class Safety {
         this.SWEEP_TIMER = undefined;
       };
 
-      this.RateLimitBucket.clear();
-      this.ipBlockList.clear();
+      this.RATE_LIMIT_BUCKET.clear();
+      this.IP_BLOCKLIST.clear();
 
       return true;
     }
@@ -187,7 +230,7 @@ class Safety {
    * for middleware use
    */
   public mwRateLimit() {
-    return async (req: IncomingMessage, res: ServerResponse<IncomingMessage>, go: () => Promise<void>) => {
+    return async (req: IncomingMessage, res: ServerResponse<IncomingMessage>) => {
       const
         ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress as string,
         url = req.url!;
@@ -195,9 +238,7 @@ class Safety {
       if (await this.isRateLimited(req.method!, ip, url)) {
         return WriteAndEnd(res, 429, 'Too many requests');
       };
-
-      return await go();
-
+      return;
     };
   };
 
@@ -207,7 +248,7 @@ class Safety {
    * for middleware use
    */
   public mwBlockList() {
-    return async (req: IncomingMessage, res: ServerResponse<IncomingMessage>, go: () => Promise<void>) => {
+    return async (req: IncomingMessage, res: ServerResponse<IncomingMessage>) => {
       const
         ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress as string,
         url = req.url!;
@@ -215,21 +256,9 @@ class Safety {
       if (await this.isBlocked(req.method!, ip, url)) {
         return WriteAndEnd(res, 403, 'Access Denied');
       };
-
-      return await go();
-
+      return;
     };
   };
 
 };
 export default Safety;
-
-
-export async function WriteAndEnd(res: ServerResponse<IncomingMessage>, statusCode: number, message: string) {
-  return res
-    .writeHead(statusCode, {
-      'Content-Length': Buffer.byteLength(message),
-      'Content-Type': 'text/plain'
-    })
-    .end(message);
-};

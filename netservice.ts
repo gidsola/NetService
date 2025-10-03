@@ -12,22 +12,24 @@ import Next from 'next';
 type NextCustom = ReturnType<typeof Next>;
 
 import MiddlewareMgr from './middleware.js';
-import Safety, { WriteAndEnd } from './safety.js';
+import { WriteAndEnd, SetHeaders } from './helpers.js';
+import Safety from './safety.js';
 import logger from './logger.js';
 
 class NetService extends EventEmitter {
 
-  private middlewareMgr = new MiddlewareMgr();
   private _nextServerOptions;
   private _httpsServerOptions;
 
-  NextServer: NextCustom;
-  Service;
+  Server;
   Safety;
+  MiddlewareMgr;
+  NextServer: NextCustom;
   development;
 
   private ServiceHandler;
   private NextRequestHandler;
+
 
   /**
    * Creates a Micro-NetService Server for the specified domain.
@@ -43,6 +45,8 @@ class NetService extends EventEmitter {
     super();
 
     this.Safety = new Safety();
+    this.MiddlewareMgr = new MiddlewareMgr();
+
     this.development = DOMAIN === 'localhost';
 
     this._nextServerOptions = {
@@ -87,7 +91,7 @@ class NetService extends EventEmitter {
     this.NextRequestHandler = this.NextServer.getRequestHandler();
 
     this.ServiceHandler = this.handleRequest.bind(this);
-    this.Service =
+    this.Server =
       this.development
         ? createHttpServer(this.ServiceHandler)
         : createSecureServer(this._httpsServerOptions, this.ServiceHandler);
@@ -98,15 +102,12 @@ class NetService extends EventEmitter {
 
   private async init() {
 
-    this.middlewareMgr.register('/', this.Safety.mwRateLimit());
-    this.middlewareMgr.register('/', this.Safety.mwBlockList());
-
     await this.NextServer.prepare();
 
     return new Promise<boolean>((resolve, reject) => {
       try {
         // re-visit the listeners
-        this.Service
+        this.Server
 
           .on('error', async function serviceError(e) {
             logger('@NetService').error(e instanceof Error ? e.message : e);
@@ -126,8 +127,7 @@ class NetService extends EventEmitter {
           // })
 
           .on('close', async () => {
-              await this.Safety.cleanup();
-              logger('@NetService').info('Server closed. Cleanup completed.');
+            await this.Safety.cleanup();
           })
 
           .listen(this._nextServerOptions.port, () => {
@@ -146,7 +146,7 @@ class NetService extends EventEmitter {
 
   private async NextRequest(req: IncomingMessage, res: ServerResponse<IncomingMessage>) {
     try {
-      setHeaders(res);
+      SetHeaders(res);
       return await this.NextRequestHandler(req, res);
     }
     catch (e) {
@@ -160,7 +160,7 @@ class NetService extends EventEmitter {
   private async handleRequest(req: IncomingMessage, res: ServerResponse<IncomingMessage>): Promise<void | ServerResponse<IncomingMessage>> {
     try {
       const url = new URL(req.url || '', `https://${req.headers.host}`);
-      if (!await this.middlewareMgr.process(req, res, url.pathname)) return;
+      if (!await this.MiddlewareMgr.process(req, res, url.pathname)) return;
 
       await this.NextRequest(req, res);
 
@@ -176,21 +176,3 @@ class NetService extends EventEmitter {
 export default NetService;
 
 
-
-function setHeaders(res: ServerResponse<IncomingMessage>) {
-  // gotta be a better way..
-  // def need to re-visit these, locale to start. permissions etc, need to be adjustable per user.
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Content-Security-Policy', "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' https://avatars.githubusercontent.com/ https://authjs.dev https://raw.githubusercontent.com https://github.com https://cdn.discordapp.com data: https://www.google-analytics.com https://www.googleadservices.com; frame-src 'self' https://www.google.com https://www.googleadservices.com https://www.google-analytics.com https://www.googleadservices.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none';");
-  res.setHeader('Permissions-Policy', "geolocation=(), midi=(), sync-xhr=(), microphone=(), camera=(), magnetometer=(), gyroscope=(), fullscreen=(self), payment=()");
-  res.setHeader('Feature-Policy', "geolocation 'none'; midi 'none'; sync-xhr 'none'; microphone 'none'; camera 'none'; magnetometer 'none'; gyroscope 'none'; fullscreen 'self'; payment 'none';");
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-  res.setHeader('Content-Language', 'en-US');
-  res.setHeader('Connection', 'close');
-};

@@ -2,14 +2,15 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { EventEmitter } from 'node:events';
 import Next from 'next';
 type NextCustom = ReturnType<typeof Next>;
+import MiddlewareMgr from './middleware.js';
 import Safety from './safety.js';
 declare class NetService extends EventEmitter {
-    private middlewareMgr;
     private _nextServerOptions;
     private _httpsServerOptions;
-    NextServer: NextCustom;
-    Service: import("http").Server<typeof IncomingMessage, typeof ServerResponse> | import("https").Server<typeof IncomingMessage, typeof ServerResponse>;
+    Server: import("http").Server<typeof IncomingMessage, typeof ServerResponse> | import("https").Server<typeof IncomingMessage, typeof ServerResponse>;
     Safety: Safety;
+    MiddlewareMgr: MiddlewareMgr;
+    NextServer: NextCustom;
     development: boolean;
     private ServiceHandler;
     private NextRequestHandler;
