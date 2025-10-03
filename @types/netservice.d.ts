@@ -27,7 +27,6 @@ declare class NetService extends EventEmitter {
      *
      */
     constructor(DOMAIN: string);
-    private initWebSocket;
     private init;
     private NextRequest;
     private handleRequest;
