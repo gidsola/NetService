@@ -1,5 +1,7 @@
+// import type { WebSocketServer } from 'ws';
 import { createServer as createHttpServer } from 'http';
 import { createServer as createSecureServer, Agent } from 'https';
+import Sockitz from 'sockitz';
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'fs';
 import Next from 'next';
@@ -11,6 +13,7 @@ class NetService extends EventEmitter {
     _nextServerOptions;
     _httpsServerOptions;
     Server;
+    Sockitz;
     Safety;
     MiddlewareMgr;
     NextServer;
@@ -29,8 +32,6 @@ class NetService extends EventEmitter {
      */
     constructor(DOMAIN) {
         super();
-        this.Safety = new Safety();
-        this.MiddlewareMgr = new MiddlewareMgr();
         this.development = DOMAIN === 'localhost';
         this._nextServerOptions = {
             rejectUnauthorized: false,
@@ -71,10 +72,31 @@ class NetService extends EventEmitter {
             this.development
                 ? createHttpServer(this.ServiceHandler)
                 : createSecureServer(this._httpsServerOptions, this.ServiceHandler);
+        this.Sockitz = new Sockitz(this.Server);
+        this.Safety = new Safety();
+        this.MiddlewareMgr = new MiddlewareMgr();
         this.init();
     }
     ;
+    initWebSocket() {
+        this.Sockitz.Ws_Server
+            .on('connection', (ws, req) => {
+            const ip = req.socket.remoteAddress;
+            this.emit('ws:connection', { client: ws, ip });
+            ws.on('message', (data) => {
+                this.emit('ws:message', { client: ws, data });
+            });
+            ws.on('close', () => {
+                this.emit('ws:disconnect', { client: ws });
+            });
+        })
+            .on('error', (e) => {
+            this.emit('ws:error', { error: e });
+        });
+    }
+    ;
     async init() {
+        this.initWebSocket();
         await this.NextServer.prepare();
         return new Promise((resolve, reject) => {
             try {

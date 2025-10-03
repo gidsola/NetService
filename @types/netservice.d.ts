@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'http';
+import Sockitz from 'sockitz';
 import { EventEmitter } from 'node:events';
 import Next from 'next';
 type NextCustom = ReturnType<typeof Next>;
@@ -8,6 +9,7 @@ declare class NetService extends EventEmitter {
     private _nextServerOptions;
     private _httpsServerOptions;
     Server: import("http").Server<typeof IncomingMessage, typeof ServerResponse> | import("https").Server<typeof IncomingMessage, typeof ServerResponse>;
+    Sockitz: Sockitz;
     Safety: Safety;
     MiddlewareMgr: MiddlewareMgr;
     NextServer: NextCustom;
@@ -25,6 +27,7 @@ declare class NetService extends EventEmitter {
      *
      */
     constructor(DOMAIN: string);
+    private initWebSocket;
     private init;
     private NextRequest;
     private handleRequest;

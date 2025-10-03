@@ -1,9 +1,12 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { SecureVersion } from 'tls';
+// import type { WebSocketServer } from 'ws';
 
 import { createServer as createHttpServer } from 'http';
 import { createServer as createSecureServer, Agent } from 'https';
+
+import Sockitz from 'sockitz';
 
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'fs';
@@ -22,6 +25,7 @@ class NetService extends EventEmitter {
   private _httpsServerOptions;
 
   Server;
+  Sockitz;
   Safety;
   MiddlewareMgr;
   NextServer: NextCustom;
@@ -44,8 +48,7 @@ class NetService extends EventEmitter {
   constructor(DOMAIN: string) {
     super();
 
-    this.Safety = new Safety();
-    this.MiddlewareMgr = new MiddlewareMgr();
+
 
     this.development = DOMAIN === 'localhost';
 
@@ -96,12 +99,38 @@ class NetService extends EventEmitter {
         ? createHttpServer(this.ServiceHandler)
         : createSecureServer(this._httpsServerOptions, this.ServiceHandler);
 
+    this.Sockitz = new Sockitz(this.Server);
+    this.Safety = new Safety();
+    this.MiddlewareMgr = new MiddlewareMgr();
+
     this.init();
+  };
+
+
+  private initWebSocket() {
+    this.Sockitz.Ws_Server
+      .on('connection', (ws, req) => {
+
+        const ip = req.socket.remoteAddress;
+        this.emit('ws:connection', { client: ws, ip });
+
+        ws.on('message', (data) => {
+          this.emit('ws:message', {client: ws, data});
+        });
+
+        ws.on('close', () => {
+          this.emit('ws:disconnect', { client: ws });
+        });
+      })
+      .on('error', (e) => {
+        this.emit('ws:error', { error: e });
+      });
   };
 
 
   private async init() {
 
+    this.initWebSocket();
     await this.NextServer.prepare();
 
     return new Promise<boolean>((resolve, reject) => {
@@ -134,6 +163,7 @@ class NetService extends EventEmitter {
             this.emit('ready');
             resolve(true);
           });
+
       }
       catch (e) {
         logger('@NetService').error(e instanceof Error ? e.message : e);
