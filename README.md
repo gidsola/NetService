@@ -78,8 +78,8 @@ netservice
 
 // Order of implement matters.
 netservice.MiddlewareMgr
-  .register('*', netservice.Safety.mwBlockList()) // registered first, runs before any others.
-  .register('*', netservice.Safety.mwRateLimit()); // registered second, runs only if the prior middleware returns `undefined`  
+  .register('*', netservice.Safety.mwRateLimit()) // registered first, runs before any others.
+  .register('*', netservice.Safety.mwBlockList()); // registered second, runs only if the prior middleware returns `undefined`  
 
 ```
 
