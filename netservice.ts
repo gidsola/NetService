@@ -48,8 +48,6 @@ class NetService extends EventEmitter {
   constructor(DOMAIN: string) {
     super();
 
-
-
     this.development = DOMAIN === 'localhost';
 
     this._nextServerOptions = {
@@ -107,30 +105,8 @@ class NetService extends EventEmitter {
   };
 
 
-  // private initWebSocket() {
-  //   this.Sockitz.Ws_Server
-  //     .on('connection', (ws, req) => {
-
-  //       const ip = req.socket.remoteAddress;
-  //       this.emit('zREADY', { client: ws, ip });
-
-  //       ws.on('message', (data) => {
-  //         this.emit('zMESSAGE', {client: ws, data});
-  //       });
-
-  //       ws.on('close', () => {
-  //         this.emit('zCLOSE', { client: ws });
-  //       });
-  //     })
-  //     .on('error', (e) => {
-  //       this.emit('zERROR', { error: e });
-  //     });
-  // };
-
-
   private async init() {
 
-    // this.initWebSocket();
     await this.NextServer.prepare();
 
     return new Promise<boolean>((resolve, reject) => {

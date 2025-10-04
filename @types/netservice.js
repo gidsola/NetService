@@ -78,24 +78,7 @@ class NetService extends EventEmitter {
         this.init();
     }
     ;
-    // private initWebSocket() {
-    //   this.Sockitz.Ws_Server
-    //     .on('connection', (ws, req) => {
-    //       const ip = req.socket.remoteAddress;
-    //       this.emit('zREADY', { client: ws, ip });
-    //       ws.on('message', (data) => {
-    //         this.emit('zMESSAGE', {client: ws, data});
-    //       });
-    //       ws.on('close', () => {
-    //         this.emit('zCLOSE', { client: ws });
-    //       });
-    //     })
-    //     .on('error', (e) => {
-    //       this.emit('zERROR', { error: e });
-    //     });
-    // };
     async init() {
-        // this.initWebSocket();
         await this.NextServer.prepare();
         return new Promise((resolve, reject) => {
             try {
