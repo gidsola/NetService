@@ -4,10 +4,6 @@
 
 NetService abstracts HTTPS configuration, enforces security best practices, and ensures consistent behavior across development and production environments, letting you focus on building your application.
 
-## DO NOT USE ANY VERSION PAST 3.0.0a  
-- I am adding ws/wss support. While the functionality of NetService won't change, I can't say for sure there'll not be issues as i dev.  
-
-
 ---
 
 ## Key Features

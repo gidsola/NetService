@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import Sockitz from 'sockitz';
 import { EventEmitter } from 'node:events';
 import Next from 'next';
 type NextCustom = ReturnType<typeof Next>;
+import Sockitz from 'sockitz';
 import MiddlewareMgr from './middleware.js';
 import Safety from './safety.js';
 declare class NetService extends EventEmitter {

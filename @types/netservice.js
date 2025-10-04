@@ -1,10 +1,9 @@
-// import type { WebSocketServer } from 'ws';
 import { createServer as createHttpServer } from 'http';
 import { createServer as createSecureServer, Agent } from 'https';
-import Sockitz from 'sockitz';
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'fs';
 import Next from 'next';
+import Sockitz from 'sockitz';
 import MiddlewareMgr from './middleware.js';
 import { WriteAndEnd, SetHeaders } from './helpers.js';
 import Safety from './safety.js';
@@ -79,39 +78,18 @@ class NetService extends EventEmitter {
     }
     ;
     async init() {
-        await this.NextServer.prepare();
-        return new Promise((resolve, reject) => {
-            try {
-                // re-visit the listeners
-                this.Server
-                    .on('error', async function serviceError(e) {
-                    logger('@NetService').error(e instanceof Error ? e.message : e);
-                })
-                    .on('clientError', async function clientError(e, socket) {
-                    socket.destroy(e);
-                })
-                    .on('tlsClientError', async function tlsClientError(e, socket) {
-                    socket.destroy(e);
-                })
-                    // commenting for now, no need to take up space.
-                    // .on('stream', async function rcvdStream(stream, headers) {
-                    //   logger().info('stream');
-                    // })
-                    .on('close', async () => {
-                    await this.Safety.cleanup();
-                })
-                    .listen(this._nextServerOptions.port, () => {
-                    this.emit('ready');
-                    resolve(true);
-                });
-            }
-            catch (e) {
-                logger('@NetService').error(e instanceof Error ? e.message : e);
-                this.emit('error', e);
-                reject(false);
-            }
-            ;
-        });
+        try {
+            await this.NextServer.prepare();
+            this.Server
+                .listen(this._nextServerOptions.port, () => {
+                this.emit('ready');
+            });
+        }
+        catch (e) {
+            logger('@NetService').error(e instanceof Error ? e.message : e);
+            this.emit('error', e);
+        }
+        ;
     }
     ;
     async NextRequest(req, res) {
