@@ -1,8 +1,7 @@
 # NetService
+*A custom server for Next.js with TLS, security headers, and middleware support.*
 
-*A production-grade custom server for Next.js with built-in TLS, security headers, and middleware support.*
-
-NetService abstracts HTTPS configuration, enforces security best practices, and ensures consistent behavior across development and production environments, letting you focus on building your application.
+NetService provides a simple way to run a Next.js app with HTTPS, middleware, and WebSocket support, while enforcing security best practices.
 
 ---
 
@@ -10,12 +9,11 @@ NetService abstracts HTTPS configuration, enforces security best practices, and 
 
 | Feature                     | Description                                                                 |
 |-----------------------------|-----------------------------------------------------------------------------|
-| **Automatic TLS**           | HTTPS in production (TLS 1.2/1.3), HTTP for `localhost`                    |
-| **Security Headers**        | Preconfigured CSP, HSTS, XSS protection, and more                          |
+| **Automatic TLS**           | HTTPS in production, HTTP for `localhost`                                  |
+| **Security Headers**        | Preconfigured security headers for all responses                           |
 | **Middleware Pipeline**     | Modular request processing (rate limiting, blocking, etc.)                 |
-| **Event-Driven Architecture** | Hook into lifecycle events (`ready`, `error`, etc.)                       |
-| **Next.js Compatibility**   | Drop-in replacement for `next start` with `customServer` support           |
-| **Environment Parity**      | Uniform behavior across development and production                         |
+| **Next.js Compatibility**   | Works as a custom server for Next.js                                        |
+| **WebSocket Support**       | Built-in WebSocket server with event-driven API                            |
 
 ---
 
@@ -33,7 +31,7 @@ npm install netservice
 ### Prerequisites
 For port-binding permissions (Linux):
 ```bash
-sudo setcap 'cap_net_bind_service=+ep' \$(which node)
+sudo setcap 'cap_net_bind_service=+ep' $(which node)
 ```
 
 ### Environment Variables
@@ -44,6 +42,7 @@ DIR_SSL="/path/to/certs/"    # Path to SSL certificates
 TLS_CIPHERS="..."            # OpenSSL cipher string (optional)
 TLS_MINVERSION="TLSv1.2"     # Minimum TLS version
 TLS_MAXVERSION="TLSv1.3"     # Maximum TLS version
+ENABLE_NEXTJS="true"         # Enable Next.js support
 ```
 
 ### SSL Certificates
@@ -56,46 +55,50 @@ Place in `DIR_SSL`:
 openssl req -x509 -out localhost.crt -keyout localhost.key \
   -newkey rsa:2048 -nodes -sha256 \
   -subj '/CN=localhost' -extensions EXT -config <( \
-   printf "[dn]\nCN=localhost\n[req]\ndistinguished_name=dn\n[EXT]\nsubjectAltName=DNS\:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
+   printf "[dn]\nCN=localhost\n[req]\ndistinguished_name=dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
 ```
 
 ---
 
-## Basic Usage with Middleware built-ins  
+## Basic Usage
 
-### Built-in Middleware
-- `mwRateLimit()`: Rate-limiting by IP/URL (10 requests/10s default)
-- `mwBlockList()`: Block specific paths  
-
-🔍 The middlewares `register` method returns context for chainability.  
-
+### Starting the Server
 ```javascript
 import NetService from 'netservice';
 
-const netservice = new NetService('yourdomain.com'); // Use 'localhost' for development
-netservice
-  .on('ready', async () => logger().info(chalk.greenBright('<< Ready >>'))); // simulated logger function
-
-// Order of implement matters.
-netservice.MiddlewareMgr
-  .register('*', netservice.Safety.mwRateLimit()) // registered first, runs before any others.
-  .register('*', netservice.Safety.mwBlockList()); // registered second, runs only if the prior middleware returns `undefined`  
-
+const netservice = new NetService(process.env.DOMAIN);
+netservice.listen(() => {
+  console.log('Server ready!');
+});
 ```
+
+### Events
+```javascript
+netservice
+  .on('ready', () => console.log('Server ready!'))
+  .on('error', (err) => console.error('Server error:', err));
+```
+
+---
 
 ## Middleware
 
-### Custom Middleware Example
+### Built-in Middleware
+- `netservice.Safety.mwRateLimit()`: Rate-limiting by IP/URL
+- `netservice.Safety.mwBlockList()`: Block specific paths
+
+#### Registering Middleware
 ```javascript
-const netservice = new NetService('yourdomain.com');
-
-netservice.middlewareMgr.register('/api', async (req, res) => {
-  if (!req.headers.authorization) {
-    return res.writeHead(401).end('Unauthorized'); // Returning a ServerResponse of any kind ends our request processing.
-  }
-  return; // returns undefined and we execute the next middleware
-});
-
+netservice
+  .register('*', netservice.Safety.mwRateLimit())
+  .register('*', netservice.Safety.mwBlockList())
+  .register('/api', async (req, res) => {
+    if (!req.headers.authorization) {
+      res.writeHead(401).end('Unauthorized');
+      return res; // Ends middleware chain
+    }
+    // Return undefined to continue
+  });
 ```
 
 #### Middleware Signature (TypeScript)
@@ -108,22 +111,39 @@ type Middleware = (
 
 ---
 
+## WebSocket Support
+
+### WebSocket Events
+| Event       | Description                          |
+|-------------|--------------------------------------|
+| `zREADY`    | New WebSocket connection established |
+| `zMESSAGE`  | Incoming WebSocket message           |
+| `zCLOSE`    | WebSocket connection closed          |
+| `zERROR`    | WebSocket error                      |
+
+#### Example
+```javascript
+netservice
+  .on('zREADY', ({ client, req }) => {
+    console.log('New WebSocket client connected');
+  })
+  .on('zMESSAGE', ({ client, data }) => {
+    console.log('Received:', data.toString());
+    client.send('Message received');
+  });
+```
+
+---
+
 ## Security
 
-### Default Protections
-- **TLS Enforcement:** Automatic HTTPS in production
-- **Rate Limiting:** Configurable thresholds
-- **Security Headers:** Applied to all responses
-
-#### Default Headers
+### Default Security Headers
 | Header                     | Value                                                                 |
 |----------------------------|-----------------------------------------------------------------------|
-| `Strict-Transport-Security`| `max-age=31536000; includeSubDomDomains; preload`                     |
-| `Content-Security-Policy`  | Restricts scripts, styles, and media sources                         |
+| `Strict-Transport-Security`| `max-age=31536000; includeSubDomains; preload`                        |
 | `X-Frame-Options`          | `SAMEORIGIN`                                                          |
 | `X-Content-Type-Options`   | `nosniff`                                                             |
 | `X-XSS-Protection`         | `1; mode=block`                                                       |
-| `Permissions-Policy`       | Disables sensitive APIs (camera, geolocation, etc.)                  |
 
 ---
 
@@ -136,11 +156,22 @@ type Middleware = (
 
 ---
 
+## Advanced Usage
+
+### Graceful Shutdown
+```javascript
+process.on('SIGINT', async () => {
+  await netservice.Safety.cleanup();
+  process.exit(0);
+});
+```
+
+---
+
 ## Contributing
 
 We welcome contributions! Focus areas:
-- TLS hardening (OCSP stapling, HPKP)
-- Header presets for specialized use cases
+- TLS hardening
 - Additional middleware utilities
 
 **License:** MIT © [gidsola](https://github.com/gidsola)

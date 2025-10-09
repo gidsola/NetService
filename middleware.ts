@@ -1,13 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-
+import { EventEmitter } from 'node:events';
 
 type Middleware = (
   req: IncomingMessage,
   res: ServerResponse<IncomingMessage>
 ) => Promise<ServerResponse<IncomingMessage> | undefined>;
 
-
-class MiddlewareMgr {
+class MiddlewareMgr extends EventEmitter {
 
   private middlewares: Record<string, Middleware[]> = {};
   private dr_allcome: Middleware[] = []; // do you know the reference 👁‍🗨 
@@ -33,7 +32,6 @@ class MiddlewareMgr {
     return this;
   };
 
-
   /**
    * Execute middlewares sequentially.
    * 
@@ -42,13 +40,13 @@ class MiddlewareMgr {
   async process(req: IncomingMessage, res: ServerResponse<IncomingMessage>, path: string): Promise<boolean> {
 
     if (this.dr_allcome)
-      for await(const mw of this.dr_allcome) {
+      for await (const mw of this.dr_allcome) {
         const result = await mw(req, res);
         if (result) return false;
       };
 
     if (this.middlewares[path])
-      for await(const mw of this.middlewares[path]) {
+      for await (const mw of this.middlewares[path]) {
         const result = await mw(req, res);
         if (result) return false;
       };

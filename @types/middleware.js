@@ -1,4 +1,5 @@
-class MiddlewareMgr {
+import { EventEmitter } from 'node:events';
+class MiddlewareMgr extends EventEmitter {
     middlewares = {};
     dr_allcome = []; // do you know the reference 👁‍🗨 
     /**

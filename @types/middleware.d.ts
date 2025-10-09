@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
+import { EventEmitter } from 'node:events';
 type Middleware = (req: IncomingMessage, res: ServerResponse<IncomingMessage>) => Promise<ServerResponse<IncomingMessage> | undefined>;
-declare class MiddlewareMgr {
+declare class MiddlewareMgr extends EventEmitter {
     private middlewares;
     private dr_allcome;
     /**
