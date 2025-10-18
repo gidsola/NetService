@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from 'http';
-import { WriteAndEnd } from './helpers.js';
-import logger from './logger.js';
+import { WriteAndEnd } from './utils/helpers.js';
+import logger from './utils/logger.js';
 import chalk from 'chalk';
 
 /**

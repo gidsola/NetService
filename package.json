@@ -31,13 +31,22 @@
   "homepage": "https://github.com/gidsola/NetService#readme",
   "dependencies": {
     "chalk": "^5.6.2",
+    "esbuild": "^0.25.10",
     "next": "^15.5.4",
-    "sockitz": "^1.0.1-ws",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "typescript": "^5.9.2",
     "winston": "^3.17.0"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
-    "@types/ws": "^8.18.1"
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.1",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^5.0.4",
+    "esbuild-css-modules-plugin": "^3.1.5",
+    "glob": "^11.0.3",
+    "react-router-dom": "^7.9.4",
+    "vite": "^7.1.9"
   }
 }

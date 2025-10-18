@@ -1,24 +1,27 @@
-// @ts-nocheck
+
 import winston from 'winston';
-import chalk from 'chalk';
+import ChalkInstance from 'chalk';
+
+type ChalkLevelType = "info" | "warn" | "error";
+type ChalkLevelInstances = { [K in ChalkLevelType]: typeof ChalkInstance };
 
 const
   { combine, timestamp, label, printf } = winston.format,
 
-  levelColors: { [key: string]: chalk.Chalk; } = {
-    info: chalk.rgb(51, 153, 255),
-    warn: chalk.rgb(255, 255, 102),
-    error: chalk.bgRedBright.whiteBright
+  levelColors: ChalkLevelInstances = {
+    "info": ChalkInstance.rgb(51, 153, 255),
+    "warn": ChalkInstance.rgb(255, 255, 102),
+    "error": ChalkInstance.bgRedBright.whiteBright
   },
   myFormat = printf(({ level, message, label, timestamp }) => {
-    const colorize = levelColors[level] || ((text: any) => text);
-    return `${chalk.blue(timestamp)} [${chalk.magenta(label)}] ${colorize(level)}: ${chalk.rgb(204, 51, 153)(message)}`;
+    const colorize = levelColors[level as ChalkLevelType] || ((text: ChalkLevelType) => text);
+    return `${ChalkInstance.blue(timestamp)} [${ChalkInstance.magenta(label)}] ${colorize(level)}: ${ChalkInstance.rgb(204, 51, 153)(message)}`;
   }),
 
   logger = (owner: string | null = null) => winston.createLogger({
     level: 'info',
     format: combine(
-      label({ label: owner ?? '@SYSTEM' }),
+      label({ label: owner || '@SYSTEM' }),
       timestamp(),
       myFormat
     ),

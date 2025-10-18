@@ -3,7 +3,8 @@ import { createServer as createSecureServer, Agent } from 'https';
 import { readFileSync } from 'fs';
 import MiddlewareMgr from './middleware.js';
 import Safety from './safety.js';
-import NextCustomServer from './modules/nextjs.js';
+import NextCustomServer from './modules/nextjs/nextjs.js';
+import ViteCustomServer from './modules/vite/vite.js';
 import { WriteAndEnd, SetHeaders } from './helpers.js';
 class Server extends MiddlewareMgr {
     HttpsServerOptions;
@@ -15,6 +16,8 @@ class Server extends MiddlewareMgr {
     NextCustomServer;
     NextServer;
     NextHandler;
+    ViteCustomServer;
+    ViteHandler;
     /**
      * Creates a NetService Server for the specified domain.
      *
@@ -43,9 +46,9 @@ class Server extends MiddlewareMgr {
             requestCert: false,
             rejectUnauthorized: this.development ? false : true,
             insecureHTTPParser: false,
-            ciphers: process.env.TLS_CIPHERS ?? "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA",
-            maxVersion: process.env.TLS_MAXVERSION ?? "TLSv1.3",
-            minVersion: process.env.TLS_MINVERSION ?? "TLSv1.2",
+            ciphers: process.env.TLS_CIPHERS || "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA",
+            maxVersion: process.env.TLS_MAXVERSION || "TLSv1.3",
+            minVersion: process.env.TLS_MINVERSION || "TLSv1.2",
             enableTrace: false,
             requestTimeout: 30000,
             sessionTimeout: 120000,
@@ -61,6 +64,8 @@ class Server extends MiddlewareMgr {
         process.env.ENABLE_NEXTJS === "true" ? (this.NextCustomServer = new NextCustomServer(this.Server, this.development, DOMAIN, this.port),
             this.NextServer = this.NextCustomServer.NextServer,
             this.NextHandler = this.NextCustomServer.NextRequestHandler.bind(this)) : this.NextHandler = undefined;
+        process.env.ENABLE_VITE === "true" ? (this.ViteCustomServer = new ViteCustomServer(this.Server, this.development),
+            this.ViteHandler = this.ViteCustomServer.getRequestHandler.bind(this)) : this.ViteHandler = undefined;
     }
     ;
     /**
@@ -75,6 +80,11 @@ class Server extends MiddlewareMgr {
             if (this.NextHandler) {
                 SetHeaders(res);
                 await this.NextHandler(req, res);
+            }
+            else if (this.ViteHandler) {
+                console.log("doing vite");
+                SetHeaders(res);
+                this.ViteHandler(req, res);
             }
             else
                 throw new Error(`(--no-handler-- NextJS not Enabled. Please set 'ENABLE_NEXTJS === "true"' in your .env file.`);

@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import MiddlewareMgr from './middleware.js';
 import Safety from './safety.js';
-import type { NextCustom } from './modules/nextjs.js';
+import type { NextCustom } from './modules/nextjs/nextjs.js';
 declare class Server extends MiddlewareMgr {
     private HttpsServerOptions;
     private ServiceHandler;
@@ -12,6 +12,8 @@ declare class Server extends MiddlewareMgr {
     private NextCustomServer;
     NextServer: NextCustom | undefined;
     NextHandler: import("next/dist/server/next.js").RequestHandler | undefined;
+    private ViteCustomServer;
+    ViteHandler: ((req: IncomingMessage, res: ServerResponse) => void) | undefined;
     /**
      * Creates a NetService Server for the specified domain.
      *
