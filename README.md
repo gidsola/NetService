@@ -1,7 +1,7 @@
 # NetService
-*A custom server for Next.js with TLS, security headers, and middleware support.*
+*HTTP/S server and websocket support for Next.js/React with TLS, security headers, and middleware support.*  
 
-NetService provides a simple way to run a Next.js app with HTTPS, middleware, and WebSocket support, while enforcing security best practices.
+NetService provides a simple way to run a production ready site with HTTPS, middleware, and WebSocket support, while enforcing security best practices. 
 
 ---
 
