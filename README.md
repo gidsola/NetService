@@ -15,9 +15,10 @@ NetService provides a simple way to run a production ready site with HTTPS, midd
 | **Next.js Compatibility**   | Works as a custom server for Next.js                                        |
 | **WebSocket Support**       | Built-in WebSocket server with event-driven API                            |
 
+---  
 
-![NetService Architecture Diagram](out_of_box_ssl.png)  
 *SSL rating aquired by NetService out of the box*  
+![NetService Architecture Diagram](out_of_box_ssl.png)  
 #### *SSL rating by: [Qualys SSL Labs](https://www.ssllabs.com/index.html)*  
 
 ---
