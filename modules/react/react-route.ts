@@ -43,7 +43,7 @@ export default class ReactRoute {
   private async renderReactComponent(element: React.ReactElement, res: ServerResponse): Promise<void> {
     return new Promise((resolve, reject) => {
 
-      const { pipe } = renderToPipeableStream(element, {
+      const { pipe, abort } = renderToPipeableStream(element, {
 
         bootstrapScripts: ['/main.js'],
         onShellReady() {
@@ -64,6 +64,10 @@ export default class ReactRoute {
         }
 
       });
+
+      setTimeout(() => {
+        abort();
+      }, 10000);
 
     });
   };
