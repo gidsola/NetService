@@ -180,4 +180,3 @@ We welcome contributions! Focus areas:
 - TLS hardening
 - Additional middleware utilities
 
-**License:** MIT © [gidsola](https://github.com/gidsola)
