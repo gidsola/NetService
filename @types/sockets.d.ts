@@ -1,6 +1,8 @@
+import { WebSocketServer } from 'ws';
 import Server from './server.js';
-declare class Sockets extends Server {
+export default class Sockets extends Server {
+    wss: WebSocketServer | null;
     constructor(DOMAIN: string);
+    startWebSocketServer(): void;
 }
-export default Sockets;
 //# sourceMappingURL=sockets.d.ts.map

@@ -1,1 +1,1 @@
-{"version":3,"file":"sockets.d.ts","sourceRoot":"","sources":["../sockets.ts"],"names":[],"mappings":"AACA,OAAO,MAAM,MAAM,aAAa,CAAC;AAEjC,cAAM,OAAQ,SAAQ,MAAM;gBAEd,MAAM,EAAE,MAAM;CAkB3B;AACD,eAAe,OAAO,CAAC"}
+{"version":3,"file":"sockets.d.ts","sourceRoot":"","sources":["../sockets.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,eAAe,EAAE,MAAM,IAAI,CAAC;AACrC,OAAO,MAAM,MAAM,aAAa,CAAC;AAEjC,MAAM,CAAC,OAAO,OAAO,OAAQ,SAAQ,MAAM;IACzC,GAAG,EAAE,eAAe,GAAG,IAAI,CAAQ;gBAEvB,MAAM,EAAE,MAAM;IAInB,oBAAoB,IAAI,IAAI;CAoBpC"}

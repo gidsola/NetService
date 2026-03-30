@@ -3,6 +3,7 @@ class NetService extends Sockets {
     constructor(DOMAIN) {
         super(DOMAIN);
         this.listen = this.listen.bind(this);
+        this.startWebSocketServer();
     }
     listen(port, callback) {
         return this.Server.listen(typeof port === "function" ? this.port : port, typeof port === "function" ? port : callback ? callback : undefined);

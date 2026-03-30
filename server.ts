@@ -23,8 +23,8 @@ class Server extends MiddlewareMgr {
   private HttpsServerOptions;
 
   private ServiceHandler;
-  
-  
+
+
   private NextCustomServer;
   private NextHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
 
@@ -36,6 +36,14 @@ class Server extends MiddlewareMgr {
     } else {
       throw new Error('React handler not enabled');
     }
+  };
+  public use(path: string, component: React.ComponentType): void {
+    if (this.ReactCustomServer) {
+      this.ReactCustomServer.ReactRoute.use(path, component);
+    }
+
+    else throw new Error('React handler not enabled');
+
   };
 
   port;

@@ -26,6 +26,14 @@ class Server extends MiddlewareMgr {
         }
     }
     ;
+    use(path, component) {
+        if (this.ReactCustomServer) {
+            this.ReactCustomServer.ReactRoute.use(path, component);
+        }
+        else
+            throw new Error('React handler not enabled');
+    }
+    ;
     port;
     Server;
     NextServer;

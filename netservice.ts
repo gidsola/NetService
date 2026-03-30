@@ -4,6 +4,7 @@ class NetService extends Sockets {
     constructor(DOMAIN: string) {
         super(DOMAIN);
         this.listen = this.listen.bind(this);
+        this.startWebSocketServer();
     }
 
     listen(port?: number, callback?: () => void) {
@@ -12,5 +13,6 @@ class NetService extends Sockets {
             typeof port === "function" ? port : callback ? callback : undefined
         );
     };
+    
 };
 export default NetService;
