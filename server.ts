@@ -19,19 +19,28 @@ import Safety from './safety.js';
  */
 class Server extends MiddlewareMgr {
 
-  private HttpsServerOptions;
-  private ServiceHandler;
   private development;
+  private HttpsServerOptions;
+  
+  private ServiceHandler;
+  private Server: ReturnType<typeof createHttpServer> | ReturnType<typeof createSecureServer>;
+  
+  private NextCustomServer;
+  private NextHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
+
+  private ReactCustomServer;
+  private ReactHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
+  public async handleReactRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    if (this.ReactHandler) {
+      await this.ReactHandler(req, res);
+    } else {
+      throw new Error('React handler not enabled');
+    }
+  };
+
   NextServer: NextCustom | undefined;
   port;
   Safety;
-  Server;
-
-  private NextCustomServer;
-  NextHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
-
-  private ReactCustomServer;
-  ReactHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
 
   /**
    * Creates a NetService Server for the specified domain.
