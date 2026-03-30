@@ -35,34 +35,31 @@ class Server extends MiddlewareMgr {
         super();
         this.development = DOMAIN === 'localhost';
         this.port = this.development ? 80 : 443;
-        this.HttpsServerOptions = {
-            key: this.development
-                ? readFileSync(process.env.DIR_SSL + "localhost.key")
-                : readFileSync(process.env.DIR_SSL + "private.key"),
-            cert: this.development
-                ? readFileSync(process.env.DIR_SSL + "localhost.crt")
-                : readFileSync(process.env.DIR_SSL + "certificate.crt"),
-            ca: this.development
-                ? undefined
-                : [readFileSync(process.env.DIR_SSL + "ca_bundle.crt")],
-            keepAlive: false,
-            requestCert: false,
-            rejectUnauthorized: this.development ? false : true,
-            insecureHTTPParser: false,
-            ciphers: process.env.TLS_CIPHERS || "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA",
-            maxVersion: process.env.TLS_MAXVERSION || "TLSv1.3",
-            minVersion: process.env.TLS_MINVERSION || "TLSv1.2",
-            enableTrace: false,
-            requestTimeout: 30000,
-            sessionTimeout: 120000,
-            agent: {}
-        };
-        this.HttpsServerOptions.agent = new Agent(this.HttpsServerOptions);
         this.ServiceHandler = this.handleRequest.bind(this);
-        this.Server =
-            this.development
-                ? createHttpServer(this.ServiceHandler)
-                : createSecureServer(this.HttpsServerOptions, this.ServiceHandler);
+        if (!this.development) {
+            if (!process.env.DIR_SSL)
+                throw new Error("DIR_SSL environment variable is not set. Please set it to the directory containing your SSL certificate files.");
+            this.HttpsServerOptions = {
+                key: readFileSync(process.env.DIR_SSL + "private.key"),
+                cert: readFileSync(process.env.DIR_SSL + "certificate.crt"),
+                ca: [readFileSync(process.env.DIR_SSL + "ca_bundle.crt")],
+                keepAlive: false,
+                requestCert: false,
+                rejectUnauthorized: true,
+                insecureHTTPParser: false,
+                ciphers: process.env.TLS_CIPHERS || "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA",
+                maxVersion: process.env.TLS_MAXVERSION || "TLSv1.3",
+                minVersion: process.env.TLS_MINVERSION || "TLSv1.2",
+                enableTrace: false,
+                requestTimeout: 30000,
+                sessionTimeout: 120000,
+                agent: {}
+            };
+            this.HttpsServerOptions.agent = new Agent(this.HttpsServerOptions);
+            this.Server = createSecureServer(this.HttpsServerOptions, this.ServiceHandler);
+        }
+        else
+            this.Server = createHttpServer(this.ServiceHandler);
         this.Safety = new Safety();
         process.env.ENABLE_NEXTJS === "true" ? (this.NextCustomServer = new NextCustomServer(this.Server, this.development, DOMAIN, this.port),
             this.NextServer = this.NextCustomServer.NextServer,
