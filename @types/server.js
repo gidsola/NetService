@@ -13,7 +13,6 @@ class Server extends MiddlewareMgr {
     development;
     HttpsServerOptions;
     ServiceHandler;
-    Server;
     NextCustomServer;
     NextHandler;
     ReactCustomServer;
@@ -27,8 +26,9 @@ class Server extends MiddlewareMgr {
         }
     }
     ;
-    NextServer;
     port;
+    Server;
+    NextServer;
     Safety;
     /**
      * Creates a NetService Server for the specified domain.

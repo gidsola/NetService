@@ -9,14 +9,14 @@ declare class Server extends MiddlewareMgr {
     private development;
     private HttpsServerOptions;
     private ServiceHandler;
-    private Server;
     private NextCustomServer;
     private NextHandler;
     private ReactCustomServer;
     private ReactHandler;
     handleReactRequest(req: IncomingMessage, res: ServerResponse): Promise<void>;
-    NextServer: NextCustom | undefined;
     port: number;
+    Server: import("http").Server<typeof IncomingMessage, typeof ServerResponse> | import("https").Server<typeof IncomingMessage, typeof ServerResponse>;
+    NextServer: NextCustom | undefined;
     Safety: Safety;
     /**
      * Creates a NetService Server for the specified domain.

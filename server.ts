@@ -21,9 +21,9 @@ class Server extends MiddlewareMgr {
 
   private development;
   private HttpsServerOptions;
-  
+
   private ServiceHandler;
-  private Server: ReturnType<typeof createHttpServer> | ReturnType<typeof createSecureServer>;
+  
   
   private NextCustomServer;
   private NextHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
@@ -38,8 +38,9 @@ class Server extends MiddlewareMgr {
     }
   };
 
-  NextServer: NextCustom | undefined;
   port;
+  Server;
+  NextServer: NextCustom | undefined;
   Safety;
 
   /**
