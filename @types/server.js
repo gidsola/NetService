@@ -19,7 +19,7 @@ class Server extends MiddlewareMgr {
     ReactHandler;
     async handleReactRequest(req, res) {
         if (this.ReactHandler) {
-            await this.ReactHandler(req, res);
+            return await this.ReactHandler(req, res);
         }
         else {
             throw new Error('React handler not enabled');

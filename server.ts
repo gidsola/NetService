@@ -32,7 +32,7 @@ class Server extends MiddlewareMgr {
   private ReactHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
   public async handleReactRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
     if (this.ReactHandler) {
-      await this.ReactHandler(req, res);
+      return await this.ReactHandler(req, res);
     } else {
       throw new Error('React handler not enabled');
     }
