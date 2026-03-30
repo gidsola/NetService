@@ -22,16 +22,16 @@ class Server extends MiddlewareMgr {
   private HttpsServerOptions;
   private ServiceHandler;
   private development;
+  NextServer: NextCustom | undefined;
   port;
   Safety;
   Server;
 
   private NextCustomServer;
-  NextServer: NextCustom | undefined;
-  NextHandler;
+  private NextHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
 
   private ReactCustomServer;
-  ReactHandler;
+  private ReactHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
 
   /**
    * Creates a NetService Server for the specified domain.
@@ -102,6 +102,11 @@ class Server extends MiddlewareMgr {
     try {
       const url = new URL(req.url || '', `https://${req.headers.host}`);
       if (!await this.process(req, res, url.pathname)) return;
+
+      // testing
+      if(!this.NextHandler && !this.ReactHandler) {
+        return;
+      }
 
       if (this.NextHandler) {
         SetHeaders(res);

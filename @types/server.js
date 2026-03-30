@@ -13,11 +13,11 @@ class Server extends MiddlewareMgr {
     HttpsServerOptions;
     ServiceHandler;
     development;
+    NextServer;
     port;
     Safety;
     Server;
     NextCustomServer;
-    NextServer;
     NextHandler;
     ReactCustomServer;
     ReactHandler;
@@ -77,6 +77,10 @@ class Server extends MiddlewareMgr {
             const url = new URL(req.url || '', `https://${req.headers.host}`);
             if (!await this.process(req, res, url.pathname))
                 return;
+            // testing
+            if (!this.NextHandler && !this.ReactHandler) {
+                return;
+            }
             if (this.NextHandler) {
                 SetHeaders(res);
                 await this.NextHandler(req, res);
