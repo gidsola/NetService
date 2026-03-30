@@ -1,1 +1,0 @@
-{"version":3,"file":"netservice.d.ts","sourceRoot":"","sources":["../netservice.ts"],"names":[],"mappings":"AAAA,OAAO,OAAO,MAAM,cAAc,CAAC;AAEnC,cAAM,UAAW,SAAQ,OAAO;gBAChB,MAAM,EAAE,MAAM;IAK1B,MAAM,CAAC,IAAI,CAAC,EAAE,MAAM,EAAE,QAAQ,CAAC,EAAE,MAAM,IAAI;CAM9C;AACD,eAAe,UAAU,CAAC"}

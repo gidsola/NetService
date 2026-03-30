@@ -6,17 +6,18 @@ import Safety from './safety.js';
  *
  */
 declare class Server extends MiddlewareMgr {
+    private development;
     private HttpsServerOptions;
     private ServiceHandler;
-    private development;
+    private Server;
+    private NextCustomServer;
+    private NextHandler;
+    private ReactCustomServer;
+    private ReactHandler;
+    handleReactRequest(req: IncomingMessage, res: ServerResponse): Promise<void>;
     NextServer: NextCustom | undefined;
     port: number;
     Safety: Safety;
-    Server: import("http").Server<typeof IncomingMessage, typeof ServerResponse> | import("https").Server<typeof IncomingMessage, typeof ServerResponse>;
-    private NextCustomServer;
-    NextHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
-    private ReactCustomServer;
-    ReactHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
     /**
      * Creates a NetService Server for the specified domain.
      *

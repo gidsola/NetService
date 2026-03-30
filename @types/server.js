@@ -10,17 +10,26 @@ import Safety from './safety.js';
  *
  */
 class Server extends MiddlewareMgr {
+    development;
     HttpsServerOptions;
     ServiceHandler;
-    development;
-    NextServer;
-    port;
-    Safety;
     Server;
     NextCustomServer;
     NextHandler;
     ReactCustomServer;
     ReactHandler;
+    async handleReactRequest(req, res) {
+        if (this.ReactHandler) {
+            await this.ReactHandler(req, res);
+        }
+        else {
+            throw new Error('React handler not enabled');
+        }
+    }
+    ;
+    NextServer;
+    port;
+    Safety;
     /**
      * Creates a NetService Server for the specified domain.
      *
