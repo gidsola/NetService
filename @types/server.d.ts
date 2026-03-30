@@ -14,9 +14,9 @@ declare class Server extends MiddlewareMgr {
     Safety: Safety;
     Server: import("http").Server<typeof IncomingMessage, typeof ServerResponse> | import("https").Server<typeof IncomingMessage, typeof ServerResponse>;
     private NextCustomServer;
-    private NextHandler;
+    NextHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
     private ReactCustomServer;
-    private ReactHandler;
+    ReactHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
     /**
      * Creates a NetService Server for the specified domain.
      *

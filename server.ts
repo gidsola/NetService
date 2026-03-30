@@ -28,10 +28,10 @@ class Server extends MiddlewareMgr {
   Server;
 
   private NextCustomServer;
-  private NextHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
+  NextHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
 
   private ReactCustomServer;
-  private ReactHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
+  ReactHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
 
   /**
    * Creates a NetService Server for the specified domain.
@@ -104,7 +104,7 @@ class Server extends MiddlewareMgr {
       if (!await this.process(req, res, url.pathname)) return;
 
       // testing
-      if(!this.NextHandler && !this.ReactHandler) {
+      if (!this.NextHandler && !this.ReactHandler) {
         return;
       }
 
