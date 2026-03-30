@@ -96,7 +96,7 @@ class Server extends MiddlewareMgr {
             }
             else if (this.ReactHandler) {
                 console.log("doing react");
-                SetHeaders(res);
+                // SetHeaders(res);
                 await this.ReactHandler(req, res);
             }
             else
