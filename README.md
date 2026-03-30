@@ -1,4 +1,4 @@
-[![Socket Badge](https://badge.socket.dev/npm/package/netservice/3.1.3)](https://badge.socket.dev/npm/package/netservice/3.1.3)
+[![Socket Badge](https://badge.socket.dev/npm/package/netservice/3.1.5)](https://badge.socket.dev/npm/package/netservice/3.1.5)
 
 # NetService
 *HTTP/S server and websocket support for Next.js/React with TLS, security headers, and middleware support.*  
