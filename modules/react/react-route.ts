@@ -57,9 +57,12 @@ export default class ReactRoute {
           reject(error);
         },
         onAllReady() {
+          res.end();
           resolve();
         },
         onError(error) {
+          res.statusCode = 500;
+          res.end('<h1>500 Internal Server Error</h1>');
           reject(error);
         }
 
