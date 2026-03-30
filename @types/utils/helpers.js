@@ -1,4 +1,3 @@
-import { IncomingMessage, ServerResponse } from 'http';
 /**
  * Helper function to write a response and end the connection.
  */

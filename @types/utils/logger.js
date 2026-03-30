@@ -1,16 +1,15 @@
-// @ts-nocheck
 import winston from 'winston';
-import chalk from 'chalk';
+import ChalkInstance from 'chalk';
 const { combine, timestamp, label, printf } = winston.format, levelColors = {
-    info: chalk.rgb(51, 153, 255),
-    warn: chalk.rgb(255, 255, 102),
-    error: chalk.bgRedBright.whiteBright
+    "info": ChalkInstance.rgb(51, 153, 255),
+    "warn": ChalkInstance.rgb(255, 255, 102),
+    "error": ChalkInstance.bgRedBright.whiteBright
 }, myFormat = printf(({ level, message, label, timestamp }) => {
     const colorize = levelColors[level] || ((text) => text);
-    return `${chalk.blue(timestamp)} [${chalk.magenta(label)}] ${colorize(level)}: ${chalk.rgb(204, 51, 153)(message)}`;
+    return `${ChalkInstance.blue(timestamp)} [${ChalkInstance.magenta(label)}] ${colorize(level)}: ${ChalkInstance.rgb(204, 51, 153)(message)}`;
 }), logger = (owner = null) => winston.createLogger({
     level: 'info',
-    format: combine(label({ label: owner ?? '@SYSTEM' }), timestamp(), myFormat),
+    format: combine(label({ label: owner || '@SYSTEM' }), timestamp(), myFormat),
     transports: [
         new winston.transports.Console(),
         new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),

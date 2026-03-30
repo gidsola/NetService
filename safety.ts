@@ -1,4 +1,4 @@
-import { IncomingMessage, ServerResponse } from 'http';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { WriteAndEnd } from './utils/helpers.js';
 import logger from './utils/logger.js';
 import chalk from 'chalk';
@@ -74,7 +74,7 @@ class Safety {
   private logAccess(type: string, method: string, address: string, url: string, a: any | null = null) {
     const
       msgString = () => `${chalk.bgBlueBright(address)}: (Method: ${method}, URL: ${chalk.bgBlue(url)}`,
-      blockType: { [x: string]: (a: any | null) => {}; } = {
+      blockType: { [x: string]: (a: any | null) => void; } = {
         "url": () => logger("@SAFETY").warn(`[${chalk.bgRedBright("[BLOCKED URL]")}] => ${msgString()}\n`),
         "ip": () => logger("@SAFETY").warn(`[${chalk.bgRedBright("[BLOCKED IP]")}] => ${msgString()}\n`),
         "ban": (a) => logger("@SAFETY").warn(`[${chalk.bgRedBright("BANNED")}] => ${chalk.bgBlueBright(address)} until ${a}\n`)

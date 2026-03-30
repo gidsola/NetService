@@ -1,4 +1,4 @@
-import { IncomingMessage, ServerResponse } from 'http';
+import type { IncomingMessage, ServerResponse } from 'http';
 /**
  * A security utility class for rate limiting, IP blocking, and URL blocking.
  * Automatically sweeps expired bans and inactive rate-limit entries at fixed intervals.

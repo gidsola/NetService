@@ -1,11 +1,14 @@
+import { readFileSync } from 'fs';
 import { createServer as createHttpServer } from 'http';
 import { createServer as createSecureServer, Agent } from 'https';
-import { readFileSync } from 'fs';
-import MiddlewareMgr from './middleware.js';
-import Safety from './safety.js';
 import NextCustomServer from './modules/nextjs/nextjs.js';
-import ViteCustomServer from './modules/vite/vite.js';
-import { WriteAndEnd, SetHeaders } from './helpers.js';
+import ReactCustomServer from './modules/react/react.js';
+import MiddlewareMgr from './middleware.js';
+import { WriteAndEnd, SetHeaders } from './utils/helpers.js';
+import Safety from './safety.js';
+/**
+ *
+ */
 class Server extends MiddlewareMgr {
     HttpsServerOptions;
     ServiceHandler;
@@ -16,8 +19,8 @@ class Server extends MiddlewareMgr {
     NextCustomServer;
     NextServer;
     NextHandler;
-    ViteCustomServer;
-    ViteHandler;
+    ReactCustomServer;
+    ReactHandler;
     /**
      * Creates a NetService Server for the specified domain.
      *
@@ -64,13 +67,13 @@ class Server extends MiddlewareMgr {
         process.env.ENABLE_NEXTJS === "true" ? (this.NextCustomServer = new NextCustomServer(this.Server, this.development, DOMAIN, this.port),
             this.NextServer = this.NextCustomServer.NextServer,
             this.NextHandler = this.NextCustomServer.NextRequestHandler.bind(this)) : this.NextHandler = undefined;
-        process.env.ENABLE_VITE === "true" ? (this.ViteCustomServer = new ViteCustomServer(this.Server, this.development),
-            this.ViteHandler = this.ViteCustomServer.getRequestHandler.bind(this)) : this.ViteHandler = undefined;
+        process.env.ENABLE_REACT === "true" ? (this.ReactCustomServer = new ReactCustomServer(this.development),
+            this.ReactHandler = this.ReactCustomServer.ReactRequestHandler.bind(this)) : this.ReactHandler = undefined;
     }
     ;
     /**
      *
-     * @note This bothers me and will likely get dispersed.
+     * @note This bothers me still.
      */
     async handleRequest(req, res) {
         try {
@@ -81,13 +84,13 @@ class Server extends MiddlewareMgr {
                 SetHeaders(res);
                 await this.NextHandler(req, res);
             }
-            else if (this.ViteHandler) {
-                console.log("doing vite");
+            else if (this.ReactHandler) {
+                console.log("doing react");
                 SetHeaders(res);
-                this.ViteHandler(req, res);
+                await this.ReactHandler(req, res);
             }
             else
-                throw new Error(`(--no-handler-- NextJS not Enabled. Please set 'ENABLE_NEXTJS === "true"' in your .env file.`);
+                throw new Error(`(--no-handler-- Please enable a web handler via your environment.`);
         }
         catch (e) {
             this.emit('error', e);
