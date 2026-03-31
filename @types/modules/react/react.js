@@ -12,7 +12,8 @@ const BaseBuildOptions = {
     target: 'esnext',
     loader: { '.tsx': 'tsx', '.jsx': 'jsx' },
     plugins: [cssModulesPlugin({ inject: true, localsConvention: 'camelCase' })],
-    jsx: 'automatic'
+    jsx: 'automatic',
+    preserveSymlinks: true
 };
 /**
  *
@@ -82,7 +83,7 @@ export default class ReactCustomServer {
                 console.log("relativePath", relativePath);
                 const routePath = `/${relativePath.replace(/\.(tsx|jsx)$/, '').replace(/\\/g, '/')}`;
                 console.log("routePath", routePath);
-                const componentPath = path.join('.react', `${entryPoint.replace(/\.(tsx|jsx)$/, '')}.js`);
+                const componentPath = path.join('./.react', `${entryPoint.replace(/\.(tsx|jsx)$/, '')}.js`);
                 console.log("componentPath", componentPath);
                 const componentModule = await import(componentPath);
                 console.log("componentModule", componentModule);
