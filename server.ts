@@ -1,13 +1,11 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { SecureVersion } from 'tls';
-import type { NextCustom } from './modules/nextjs/nextjs.js';
 
 import { readFileSync } from 'fs';
 import { createServer as createHttpServer } from 'http';
 import { createServer as createSecureServer, Agent } from 'https';
 
-import NextCustomServer from './modules/nextjs/nextjs.js';
 import ReactCustomServer from './modules/react/react.js';
 import MiddlewareMgr from './middleware.js';
 
@@ -23,11 +21,7 @@ class Server extends MiddlewareMgr {
   private HttpsServerOptions;
 
   private ServiceHandler;
-
-
-  private NextCustomServer;
-  private NextHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
-
+  
   private ReactCustomServer;
   private ReactHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
   public async handleReactRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -48,7 +42,6 @@ class Server extends MiddlewareMgr {
 
   port;
   Server;
-  NextServer: NextCustom | undefined;
   Safety;
 
   /**
@@ -94,21 +87,12 @@ class Server extends MiddlewareMgr {
       this.HttpsServerOptions.agent = new Agent(this.HttpsServerOptions);
       this.Server = createSecureServer(this.HttpsServerOptions, this.ServiceHandler);
     }
-
     else this.Server = createHttpServer(this.ServiceHandler);
 
     this.Safety = new Safety();
+    this.ReactCustomServer = new ReactCustomServer(this.development);
+    this.ReactHandler = this.ReactCustomServer.ReactRequestHandler.bind(this);
 
-    process.env.ENABLE_NEXTJS === "true" ? (
-      this.NextCustomServer = new NextCustomServer(this.Server, this.development, DOMAIN, this.port),
-      this.NextServer = this.NextCustomServer.NextServer,
-      this.NextHandler = this.NextCustomServer.NextRequestHandler.bind(this)
-    ) : this.NextHandler = undefined;
-
-    process.env.ENABLE_REACT === "true" ? (
-      this.ReactCustomServer = new ReactCustomServer(this.development),
-      this.ReactHandler = this.ReactCustomServer.ReactRequestHandler.bind(this)
-    ) : this.ReactHandler = undefined;
 
   };
 
@@ -121,21 +105,12 @@ class Server extends MiddlewareMgr {
       const url = new URL(req.url || '', `https://${req.headers.host}`);
       if (!await this.process(req, res, url.pathname)) return;
 
-      // testing
-      if (!this.NextHandler && !this.ReactHandler) {
-        return;
-      }
-
-      if (this.NextHandler) {
-        SetHeaders(res);
-        await this.NextHandler(req, res);
-      }
-      else if (this.ReactHandler) {
+      if (this.ReactHandler) {
         console.log("doing react");
         // SetHeaders(res);
         await this.ReactHandler(req, res);
       }
-      else throw new Error(`(--no-handler-- Please enable a web handler via your environment.`)
+      else throw new Error(`No handler found for ${url.pathname}`);
 
     } catch (e) {
       this.emit('error', e);
