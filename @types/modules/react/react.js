@@ -3,6 +3,22 @@ import cssModulesPlugin from 'esbuild-css-modules-plugin';
 import { glob } from 'glob';
 import ReactRoute from './react-route.js';
 import path from 'path';
+import { readFile } from 'fs/promises';
+const cssImportPlugin = {
+    name: 'css-import',
+    setup(build) {
+        build.onResolve({ filter: /\.css$/ }, (args) => {
+            return { path: path.resolve(args.resolveDir, args.path), namespace: 'css-import' };
+        });
+        build.onLoad({ filter: /\.css$/, namespace: 'css-import' }, async (args) => {
+            const cssContent = await readFile(args.path, 'utf8');
+            return {
+                contents: `// CSS injected by esbuild\nconst style = document.createElement('style');\nstyle.textContent = \`${cssContent.replace(/`/g, '\\`')}\`;\ndocument.head.appendChild(style);\nexport default {};`,
+                loader: 'js',
+            };
+        });
+    },
+};
 const entryPoints = await glob(['app/**/*.{tsx,jsx}']);
 const BaseBuildOptions = {
     entryPoints: entryPoints,
@@ -11,7 +27,7 @@ const BaseBuildOptions = {
     format: 'esm',
     target: 'esnext',
     loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'css' },
-    plugins: [cssModulesPlugin({ inject: true, localsConvention: 'camelCase' })],
+    plugins: [cssModulesPlugin({ inject: true, localsConvention: 'camelCase' }), cssImportPlugin],
     jsx: 'automatic',
     preserveSymlinks: true
 };
@@ -80,8 +96,6 @@ export default class ReactCustomServer {
             for (const entryPoint of entryPoints) {
                 const relativePath = path.relative('app', entryPoint);
                 const routePath = `/${relativePath.replace(/\.(tsx|jsx)$/, '').replace(/\\/g, '/')}`;
-                // const componentPath = path.join('.react', relativePath.replace(/\.(tsx|jsx)$/, '') + '.js')
-                //   .replace(/\\/g, '/');
                 const componentPath = path.resolve(process.cwd(), '.react', relativePath.replace(/\.(tsx|jsx)$/, '') + '.js');
                 console.log("componentPath", componentPath);
                 const fileUrl = new URL(`file://${componentPath.replace(/\\/g, '/')}`);
