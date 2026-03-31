@@ -11,18 +11,19 @@ const entryPoints = await glob(['app/**/*.{tsx,jsx}']);
 const BaseBuildOptions: esbuild.BuildOptions = {
   entryPoints: entryPoints,
   outdir: '.react/',
-  platform: 'node',
+  platform: 'browser',
   format: 'esm',
   target: 'es2015',
-  loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'css' },
+  loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'text' },
   plugins: [
     cssModulesPlugin({
-      inject: (cssContent, digest) => `
-        const style = document.createElement('style');
-        style.textContent = \`${cssContent.replace(/`/g, '\\`')}\`;
-        document.head.appendChild(style);
-        export default {};
-      `,
+      // inject: (cssContent, digest) => `
+      //   const style = document.createElement('style');
+      //   style.textContent = \`${cssContent.replace(/`/g, '\\`')}\`;
+      //   document.head.appendChild(style);
+      //   export default {};
+      // `,
+      inject: true,
       localsConvention: 'camelCase',
     }),
   ],
@@ -98,7 +99,7 @@ export default class ReactCustomServer {
       outfile: 'public/main.js',
       platform: 'browser',
       target: 'es2015',
-      loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'css' },
+      loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'text' },
       jsx: 'automatic'
     });
 
