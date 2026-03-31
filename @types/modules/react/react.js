@@ -80,8 +80,9 @@ export default class ReactCustomServer {
             for (const entryPoint of entryPoints) {
                 const relativePath = path.relative('app', entryPoint);
                 const routePath = `/${relativePath.replace(/\.(tsx|jsx)$/, '').replace(/\\/g, '/')}`;
-                const componentPath = path.join('.react', relativePath.replace(/\.(tsx|jsx)$/, '') + '.js')
-                    .replace(/\\/g, '/');
+                // const componentPath = path.join('.react', relativePath.replace(/\.(tsx|jsx)$/, '') + '.js')
+                //   .replace(/\\/g, '/');
+                const componentPath = path.resolve(process.cwd(), '.react', relativePath.replace(/\.(tsx|jsx)$/, '') + '.js');
                 console.log("componentPath", componentPath);
                 const componentModule = await import(componentPath);
                 const componentName = Object.keys(componentModule)[0];
