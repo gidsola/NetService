@@ -3,31 +3,25 @@ import cssModulesPlugin from 'esbuild-css-modules-plugin';
 import { glob } from 'glob';
 import ReactRoute from './react-route.js';
 import path from 'path';
-import { readFile } from 'fs/promises';
-const cssImportPlugin = {
-    name: 'css-import',
-    setup(build) {
-        build.onResolve({ filter: /\.css$/ }, (args) => {
-            return { path: path.resolve(args.resolveDir, args.path), namespace: 'css-import' };
-        });
-        build.onLoad({ filter: /\.css$/, namespace: 'css-import' }, async (args) => {
-            const cssContent = await readFile(args.path, 'utf8');
-            return {
-                contents: `// CSS injected by esbuild\nconst style = document.createElement('style');\nstyle.textContent = \`${cssContent.replace(/`/g, '\\`')}\`;\ndocument.head.appendChild(style);\nexport default {};`,
-                loader: 'js',
-            };
-        });
-    },
-};
 const entryPoints = await glob(['app/**/*.{tsx,jsx}']);
 const BaseBuildOptions = {
     entryPoints: entryPoints,
     outdir: '.react/',
     platform: 'node',
     format: 'esm',
-    target: 'esnext',
+    target: 'es2015',
     loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'css' },
-    plugins: [cssModulesPlugin({ inject: true, localsConvention: 'camelCase' }), cssImportPlugin],
+    plugins: [
+        cssModulesPlugin({
+            inject: (cssContent, digest) => `
+        const style = document.createElement('style');
+        style.textContent = \`${cssContent.replace(/`/g, '\\`')}\`;
+        document.head.appendChild(style);
+        export default {};
+      `,
+            localsConvention: 'camelCase',
+        }),
+    ],
     jsx: 'automatic',
     preserveSymlinks: true
 };
