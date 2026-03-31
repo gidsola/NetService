@@ -9,19 +9,10 @@ const BaseBuildOptions = {
     outdir: '.react/',
     platform: 'browser',
     format: 'esm',
-    target: 'es2015',
+    target: 'esnext',
     loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'text' },
     plugins: [
-        cssModulesPlugin({
-            // inject: (cssContent, digest) => `
-            //   const style = document.createElement('style');
-            //   style.textContent = \`${cssContent.replace(/`/g, '\\`')}\`;
-            //   document.head.appendChild(style);
-            //   export default {};
-            // `,
-            inject: true,
-            localsConvention: 'camelCase',
-        }),
+        cssModulesPlugin({ localsConvention: 'camelCase' }),
     ],
     jsx: 'automatic',
     preserveSymlinks: true
@@ -75,7 +66,7 @@ export default class ReactCustomServer {
             bundle: true,
             outfile: 'public/main.js',
             platform: 'browser',
-            target: 'es2015',
+            target: 'esnext',
             loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'text' },
             jsx: 'automatic'
         });
