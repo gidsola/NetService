@@ -10,7 +10,7 @@ const BaseBuildOptions = {
     platform: 'node',
     format: 'esm',
     target: 'esnext',
-    loader: { '.tsx': 'tsx', '.jsx': 'jsx' },
+    loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'css' },
     plugins: [cssModulesPlugin({ inject: true, localsConvention: 'camelCase' })],
     jsx: 'automatic',
     preserveSymlinks: true
@@ -65,7 +65,7 @@ export default class ReactCustomServer {
             outfile: 'public/main.js',
             platform: 'browser',
             target: 'es2015',
-            loader: { '.tsx': 'tsx', '.jsx': 'jsx' },
+            loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'css' },
             jsx: 'automatic'
         });
         await this.mapRoutes(entryPoints);
