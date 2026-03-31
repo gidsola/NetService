@@ -109,7 +109,7 @@ export default class ReactCustomServer {
         const routePath = `/${relativePath.replace(/\.(tsx|jsx)$/, '').replace(/\\/g, '/')}`;
         console.log("routePath", routePath);
 
-        const componentPath = path.join('.react', `${relativePath.replace(/\.(tsx|jsx)$/, '')}.js`);
+        const componentPath = path.join('.react', `${entryPoint.replace(/\.(tsx|jsx)$/, '')}.js`);
         console.log("componentPath", componentPath);
 
         const componentModule = await import(componentPath);
