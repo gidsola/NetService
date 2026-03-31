@@ -112,7 +112,12 @@ export default class ReactCustomServer {
 
         console.log("componentPath", componentPath);
 
-        const componentModule = await import(componentPath);
+        const fileUrl = new URL(`file://${componentPath.replace(/\\/g, '/')}`);
+
+        console.log("fileUrl", fileUrl.href);
+
+        const componentModule = await import(fileUrl.href);
+        // const componentModule = await import(componentPath);
         const componentName = Object.keys(componentModule)[0];
         if (componentName) {
           console.log("componentName", componentName);
