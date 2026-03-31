@@ -102,20 +102,15 @@ export default class ReactCustomServer {
   private async mapRoutes(entryPoints: string[]): Promise<void> {
     try {
       for (const entryPoint of entryPoints) {
-        console.log("entryPoint", entryPoint);
-
         const relativePath = path.relative('app', entryPoint);
-        console.log("relativePath", relativePath);
-
         const routePath = `/${relativePath.replace(/\.(tsx|jsx)$/, '').replace(/\\/g, '/')}`;
-        console.log("routePath", routePath);
 
-        const componentPath = path.join('./.react', `${entryPoint.replace(/\.(tsx|jsx)$/, '')}.js`);
+        const componentPath = path.join('.react', relativePath.replace(/\.(tsx|jsx)$/, '') + '.js')
+          .replace(/\\/g, '/');
+
         console.log("componentPath", componentPath);
 
         const componentModule = await import(componentPath);
-        console.log("componentModule", componentModule);
-
         const componentName = Object.keys(componentModule)[0];
         if (componentName) {
           console.log("componentName", componentName);
@@ -123,6 +118,7 @@ export default class ReactCustomServer {
           this.ReactRoute.use(routePath, component);
         }
         else console.error("component path returned undefined");
+
       };
     }
     catch (e) {
