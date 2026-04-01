@@ -1,6 +1,6 @@
 {
   "name": "netservice",
-  "version": "3.1.993",
+  "version": "3.2.2",
   "description": "NetService: A secure, zero-config custom server for Next.js with automatic TLS (1.2/1.3), built-in security headers, and seamless dev/prod parity. Enforce HTTPS in production and HTTP locally—no manual setup. Designed for developers who want control, security, and simplicity without compromise.",
   "main": "@types/netservice.js",
   "type": "module",
@@ -17,7 +17,6 @@
   },
   "keywords": [
     "http/https",
-    "Next",
     "web",
     "server",
     "micro",
@@ -32,7 +31,7 @@
   "dependencies": {
     "chalk": "^5.6.2",
     "esbuild": "^0.25.10",
-    "esbuild-css-modules-plugin": "^3.1.5",
+    "esbuild-css-modules-plugin": "^3.0.0-dev.19",
     "glob": "^13.0.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -46,5 +45,6 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.1",
     "@types/ws": "^8.18.1"
+    
   }
 }

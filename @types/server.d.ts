@@ -27,6 +27,11 @@ declare class Server extends MiddlewareMgr {
      */
     constructor(DOMAIN: string);
     /**
+     * Serves static files from the 'public' directory.
+     * Returns true if a file was served, false otherwise.
+     */
+    private serveStaticFile;
+    /**
      *
      * @note This bothers me still.
      */

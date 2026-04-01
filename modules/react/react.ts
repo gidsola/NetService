@@ -1,136 +1,95 @@
-
 import type { IncomingMessage, ServerResponse } from 'http';
-import esbuild from 'esbuild';
-import cssModulesPlugin from 'esbuild-css-modules-plugin';
+import esbuild, { type Loader } from 'esbuild';
+import CssModulesPlugin from 'esbuild-css-modules-plugin';
 import { glob } from 'glob';
 import ReactRoute from './react-route.js';
 import path from 'path';
+import { existsSync } from 'fs';
+import { pathToFileURL } from 'url';
 
+const configPath = path.resolve(process.cwd(), 'netservice.config.js');
 
-const entryPoints = await glob(['app/**/*.{tsx,jsx}']);
+type ConfigItems = {
+  reactBasePath: string;
+  bundle: boolean;
+  outdir: string;
+  inject: string[];
+  loader: { [ext: string]: Loader };
+};
+
+let netserviceConfig: ConfigItems = {
+  reactBasePath: 'app',
+  bundle: false,
+  outdir: '.dist/',
+  inject: [],
+  loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'text' }
+};
+
+if (existsSync(configPath)) {
+  const configModule: { default: ConfigItems } = await import(pathToFileURL(configPath).href);
+  netserviceConfig = { ...netserviceConfig, ...configModule.default };
+}
+
+const basePath = netserviceConfig.reactBasePath || 'app';
+const entryPoints = await glob([`${basePath}/**/*.{tsx,jsx}`]);
+
 const BaseBuildOptions: esbuild.BuildOptions = {
   entryPoints: entryPoints,
-  outdir: '.react/',
+  outdir: netserviceConfig.outdir,
+  bundle: netserviceConfig.bundle,
   platform: 'browser',
   format: 'esm',
-  target: 'esnext',
-  loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'text' },
-  plugins: [
-    cssModulesPlugin({localsConvention: 'camelCase'}),
-  ],
+  target: ['chrome80', 'edge80', 'firefox78', 'safari14'],
   jsx: 'automatic',
-  preserveSymlinks: true
-
+  preserveSymlinks: true,
+  inject: netserviceConfig.inject,
+  loader: netserviceConfig.loader,
+  plugins: [CssModulesPlugin({ localsConvention: 'camelCase' })]
 };
 
 /**
- * 
- */
-export type ReactCustom = {
-  ReactRoute: ReactRoute;
-  ReactRequestHandler: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
-};
-
-/**
- * 
+ * Only provide the ReactRoute instance and handler.
+ * Do not import or execute React components in Node.js.
  */
 export default class ReactCustomServer {
-
   public ReactRoute: ReactRoute;
   public ReactRequestHandler: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 
-  /**
-   * 
-   * @param development 
-   */
   constructor(development: boolean) {
-
     this.ReactRoute = new ReactRoute();
-    this.ReactRequestHandler = this.ReactRoute.router.bind(this.ReactRoute)
+    this.ReactRequestHandler = this.ReactRoute.router.bind(this.ReactRoute);
 
-    // not staying
     if (development) {
       this.devBuild();
-    }
-    else {
+    } else {
       this.prodBuild();
-    };
-
+    }
   }
 
-
-  /**
-   * 
-   */
   private async devBuild(): Promise<void> {
     try {
-
       const ctx = await esbuild.context({ ...BaseBuildOptions, sourcemap: 'inline' });
       await ctx.watch();
       console.log('Watching for changes...');
-
-      await this.mapRoutes(entryPoints);
-
     } catch (e) {
       console.error('Error in devBuild:', e);
-    };
-  };
-
-  /**
-   * 
-   */
-  private async prodBuild(): Promise<void> {
-
-    // todo: handle build failures
-    await esbuild.build({ ...BaseBuildOptions });
-
-    await esbuild.build({
-      entryPoints: ['src/main.tsx'],
-      bundle: true,
-      outfile: 'public/main.js',
-      platform: 'browser',
-      target: 'esnext',
-      loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'text' },
-      jsx: 'automatic'
-    });
-
-    await this.mapRoutes(entryPoints);
-
-  };
-
-  /**
-   * 
-   * @param entryPoints 
-   */
-  private async mapRoutes(entryPoints: string[]): Promise<void> {
-    try {
-      for (const entryPoint of entryPoints) {
-        const relativePath = path.relative('app', entryPoint);
-        const routePath = `/${relativePath.replace(/\.(tsx|jsx)$/, '').replace(/\\/g, '/')}`;
-
-        const componentPath = path.resolve(process.cwd(), '.react', relativePath.replace(/\.(tsx|jsx)$/, '') + '.js');
-
-        console.log("componentPath", componentPath);
-
-        const fileUrl = new URL(`file://${componentPath.replace(/\\/g, '/')}`);
-
-        console.log("fileUrl", fileUrl.href);
-
-        const componentModule = await import(fileUrl.href);
-        // const componentModule = await import(componentPath);
-        const componentName = Object.keys(componentModule)[0];
-        if (componentName) {
-          console.log("componentName", componentName);
-          const component = componentModule[componentName!];
-          this.ReactRoute.use(routePath, component);
-        }
-        else console.error("component path returned undefined");
-
-      };
     }
-    catch (e) {
-      console.error(e);
-    };
-  };
+  }
 
-};
+  private async prodBuild(): Promise<void> {
+    try {
+      await esbuild.build({ ...BaseBuildOptions });
+      await esbuild.build({
+        entryPoints: ['src/main.tsx'],
+        bundle: true,
+        outfile: 'public/main.js',
+        platform: 'browser',
+        target: ['chrome80', 'edge80', 'firefox78', 'safari14'],
+        loader: { '.tsx': 'tsx', '.jsx': 'jsx', '.css': 'text' },
+        jsx: 'automatic'
+      });
+    } catch (e) {
+      console.error('Error in prodBuild:', e);
+    }
+  }
+}
