@@ -22,22 +22,6 @@ class Server extends MiddlewareMgr {
   private ReactCustomServer;
   private ReactHandler: ((req: IncomingMessage, res: ServerResponse) => Promise<void>) | undefined;
 
-  public async handleReactRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    if (this.ReactHandler) {
-      return await this.ReactHandler(req, res);
-    } else {
-      throw new Error('React handler not enabled');
-    }
-  }
-
-  public use(path: string, component: React.ComponentType): void {
-    if (this.ReactCustomServer) {
-      this.ReactCustomServer.ReactRoute.use(path, component);
-    } else {
-      throw new Error('React handler not enabled');
-    }
-  }
-
   public port;
   public Server;
   public Safety;
@@ -92,7 +76,7 @@ class Server extends MiddlewareMgr {
 
     this.Safety = new Safety();
     this.ReactCustomServer = new ReactCustomServer(this.development);
-    this.ReactHandler = this.ReactCustomServer.ReactRequestHandler.bind(this);
+    this.ReactHandler = this.ReactCustomServer.ReactRequestHandler.bind(this.ReactCustomServer);
   }
 
   /**

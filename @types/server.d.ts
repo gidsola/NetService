@@ -10,8 +10,6 @@ declare class Server extends MiddlewareMgr {
     private ServiceHandler;
     private ReactCustomServer;
     private ReactHandler;
-    handleReactRequest(req: IncomingMessage, res: ServerResponse): Promise<void>;
-    use(path: string, component: React.ComponentType): void;
     port: number;
     Server: import("https").Server<typeof IncomingMessage, typeof ServerResponse> | import("http").Server<typeof IncomingMessage, typeof ServerResponse>;
     Safety: Safety;

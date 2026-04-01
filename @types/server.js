@@ -15,22 +15,6 @@ class Server extends MiddlewareMgr {
     ServiceHandler;
     ReactCustomServer;
     ReactHandler;
-    async handleReactRequest(req, res) {
-        if (this.ReactHandler) {
-            return await this.ReactHandler(req, res);
-        }
-        else {
-            throw new Error('React handler not enabled');
-        }
-    }
-    use(path, component) {
-        if (this.ReactCustomServer) {
-            this.ReactCustomServer.ReactRoute.use(path, component);
-        }
-        else {
-            throw new Error('React handler not enabled');
-        }
-    }
     port;
     Server;
     Safety;
@@ -78,7 +62,7 @@ class Server extends MiddlewareMgr {
         }
         this.Safety = new Safety();
         this.ReactCustomServer = new ReactCustomServer(this.development);
-        this.ReactHandler = this.ReactCustomServer.ReactRequestHandler.bind(this);
+        this.ReactHandler = this.ReactCustomServer.ReactRequestHandler.bind(this.ReactCustomServer);
     }
     /**
      * Serves static files from the 'public' directory.
